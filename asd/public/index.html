@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Print Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .upload-section {
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    #resultsContainer {
+      margin-top: 20px;
+    }
+    .prediction-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .prediction-list li {
+      padding: 10px;
+      margin-bottom: 5px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .image-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .image-container img {
+      max-width: 100%;
+      border-radius: 4px;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>3D Print Monitor</h1>
+  
+  <div class="card">
+    <div class="upload-section">
+      <h2>Upload Image</h2>
+      <div class="form-group">
+        <label for="fileInput">Select an image of your 3D print:</label>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <button id="detectButton">Detect Failures</button>
+    </div>
+  </div>
+  
+  <div id="resultsContainer"></div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const detectButton = document.getElementById('detectButton');
+      const fileInput = document.getElementById('fileInput');
+      const resultsContainer = document.getElementById('resultsContainer');
+      
+      detectButton.addEventListener('click', async function() {
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert('Please select an image first');
+          return;
+        }
+        
+        // Show loading state
+        resultsContainer.innerHTML = `
+          <div class="card loading">
+            <div class="spinner"></div>
+            <p>Processing image...</p>
+          </div>
+        `;
+        
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        
+        try {
+          const response = await fetch('http://localhost:5000/api/roboflow/detect', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          displayResults(data);
+        } catch (error) {
+          resultsContainer.innerHTML = `
+            <div class="card">
+              <h2>Error</h2>
+              <p>${error.message || 'Failed to process image'}</p>
+            </div>
+          `;
+        }
+      });
+      
+      function displayResults(data) {
+        if (!data.predictions || data.predictions.length === 0) {
+          resultsContainer.innerHTML = `
+            <div class="card">
+              <h2>Results</h2>
+              <p>No failures detected in this image.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Get the original image dimensions
+        const imageWidth = data.image.width;
+        const imageHeight = data.image.height;
+        
+        // Create HTML for results
+        let resultsHTML = `
+          <div class="card">
+            <h2>Detection Results</h2>
+            <div class="image-container" id="imageWrapper" style="position: relative;">
+              <img src="${URL.createObjectURL(fileInput.files[0])}" alt="Uploaded image" style="width: 100%;">
+            </div>
+            <h3>Detected Issues (${data.predictions.length}):</h3>
+            <ul class="prediction-list">
+        `;
+        
+        data.predictions.forEach((prediction, index) => {
+          resultsHTML += `
+            <li>
+              <span>${prediction.class}</span>
+              <span>${Math.round(prediction.confidence * 100)}% confidence</span>
+            </li>
+          `;
+        });
+        
+        resultsHTML += `
+            </ul>
+          </div>
+        `;
+        
+        resultsContainer.innerHTML = resultsHTML;
+        
+        // Add bounding boxes
+        const imageWrapper = document.getElementById('imageWrapper');
+        
+        data.predictions.forEach((prediction, index) => {
+          const box = document.createElement('div');
+          
+          // Calculate position and size (normalized to percentages)
+          const x = (prediction.x - prediction.width / 2) / imageWidth * 100;
+          const y = (prediction.y - prediction.height / 2) / imageHeight * 100;
+          const width = prediction.width / imageWidth * 100;
+          const height = prediction.height / imageHeight * 100;
+          
+          // Style the box
+          box.style.position = 'absolute';
+          box.style.left = `${x}%`;
+          box.style.top = `${y}%`;
+          box.style.width = `${width}%`;
+          box.style.height = `${height}%`;
+          box.style.border = '3px solid red';
+          box.style.boxSizing = 'border-box';
+          
+          // Add label
+          const label = document.createElement('div');
+          label.textContent = `${prediction.class} (${Math.round(prediction.confidence * 100)}%)`;
+          label.style.position = 'absolute';
+          label.style.top = '-25px';
+          label.style.left = '0';
+          label.style.background = 'red';
+          label.style.color = 'white';
+          label.style.padding = '2px 6px';
+          label.style.fontSize = '12px';
+          label.style.borderRadius = '3px';
+          label.style.whiteSpace = 'nowrap';
+          
+          box.appendChild(label);
+          imageWrapper.appendChild(box);
+        });
+      }
+    });
+  </script>
+</body>
+</html> 
