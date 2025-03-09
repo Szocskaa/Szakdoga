@@ -479,19 +479,27 @@
     uniform float xScale;
     uniform float yScale;
     uniform float distortion;
+    uniform vec2 mouse;
     
     void main() {
       vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
       
-      float d = length(p) * distortion;
+      // Calculate distance from cursor
+      vec2 mousePos = (mouse * 2.0 - resolution) / min(resolution.x, resolution.y);
+      float cursorDistance = length(p - mousePos);
+      float cursorInfluence = 0.15 / (cursorDistance + 0.1);
+      
+      // Add cursor distortion to base distortion
+      float d = length(p) * distortion + cursorInfluence * 0.03;
       
       float rx = p.x * (1.0 + d);
       float gx = p.x;
       float bx = p.x * (1.0 - d);
     
-      float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale);
-      float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale);
-      float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale);
+      // Add cursor influence to waves
+      float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
+      float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
+      float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
       
       gl_FragColor = vec4(r, g, b, 1.0);
     }
@@ -585,13 +593,18 @@
         this.canvas = document.getElementById("webgl-canvas");
         this.canvasWidth = this.canvas.width;
         this.canvasHeight = this.canvas.height;
+        
+        // Mouse position tracking
+        this.mouseX = 0;
+        this.mouseY = 0;
 
         this.uniforms = {
           resolution: { type: "v2", value: [ this.canvasWidth, this.canvasHeight ] },
           time: { type: "f", value: 0.0 },
           xScale: { type: "f", value: 1.0 },
           yScale: { type: "f", value: 0.5 },
-          distortion: { type: "f", value: 0.050 }
+          distortion: { type: "f", value: 0.050 },
+          mouse: { type: "v2", value: [ 0.5, 0.5 ] }
         };
 
         this.stage = stage;
@@ -601,10 +614,45 @@
         this.xScale = 1.0;
         this.yScale = 0.5;
         this.distortion = 0.050;
+        
+        // Set up mouse move listener
+        this._setupMouseTracking();
       }
 
       init() {
         this._setMesh();
+      }
+      
+      _setupMouseTracking() {
+        window.addEventListener('mousemove', (e) => {
+          // Normalize mouse coordinates
+          this.mouseX = e.clientX;
+          this.mouseY = e.clientY;
+          
+          // Update uniform
+          if (this.uniforms.mouse) {
+            this.uniforms.mouse.value[0] = this.mouseX;
+            this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+          }
+        });
+        
+        // Handle touch for mobile
+        window.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) {
+            // Prevent scrolling
+            e.preventDefault();
+            
+            // Normalize touch coordinates
+            this.mouseX = e.touches[0].clientX;
+            this.mouseY = e.touches[0].clientY;
+            
+            // Update uniform
+            if (this.uniforms.mouse) {
+              this.uniforms.mouse.value[0] = this.mouseX;
+              this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+            }
+          }
+        }, { passive: false });
       }
 
       _setMesh() {
@@ -634,8 +682,24 @@
         this.stage.scene.add(this.mesh);
       }
       
+      _updateDimensions() {
+        if (this.canvas) {
+          this.canvasWidth = this.canvas.width;
+          this.canvasHeight = this.canvas.height;
+          
+          if (this.uniforms.resolution) {
+            this.uniforms.resolution.value[0] = this.canvasWidth;
+            this.uniforms.resolution.value[1] = this.canvasHeight;
+          }
+        }
+      }
+      
       _render() {
-        this.uniforms.time.value += 0.01;
+        // Slower speed for the waves (reduced from 0.01)
+        this.uniforms.time.value += 0.004;
+        
+        // Update dimensions if window is resized
+        this._updateDimensions();
       }
 
       onRaf() {
