@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,11 +10,35 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root {
-      --glass-bg: rgba(255, 255, 255, 0.1);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-      --text-light: #ffffff;
+      /* Dark Theme (Default) */
+      --glass-bg: rgba(30, 30, 40, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --text-color: #ffffff;
       --accent: #ffffff;
+      --upload-area-bg: rgba(20, 20, 30, 0.4);
+      --input-bg: rgba(40, 40, 60, 0.6);
+      --hover-bg: rgba(60, 60, 80, 0.7);
+      --error-bg: rgba(60, 30, 30, 0.6);
+      --card-highlight: linear-gradient(135deg, rgba(255,255,255,0.4), transparent);
+      --border-highlight: #fff;
+      --item-marker: #fff;
+    }
+
+    [data-theme="light"] {
+      /* Light Theme */
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+      --text-color: #333333;
+      --accent: #333333;
+      --upload-area-bg: rgba(240, 240, 245, 0.7);
+      --input-bg: rgba(220, 220, 230, 0.8);
+      --hover-bg: rgba(200, 200, 220, 0.8);
+      --error-bg: rgba(255, 220, 220, 0.8);
+      --card-highlight: linear-gradient(135deg, rgba(0,0,0,0.05), transparent);
+      --border-highlight: #333;
+      --item-marker: #333;
     }
 
     * {
@@ -25,7 +49,7 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      color: var(--text-light);
+      color: var(--text-color);
       min-height: 100vh;
       overflow-x: hidden;
       margin: 0;
@@ -57,7 +81,7 @@
     .logo {
       font-size: 3rem;
       font-weight: 700;
-      color: #fff;
+      color: var(--text-color);
       margin-bottom: 10px;
       letter-spacing: -1px;
       position: relative;
@@ -68,7 +92,7 @@
       position: absolute;
       width: 60px;
       height: 4px;
-      background: linear-gradient(90deg, #fff, transparent);
+      background: linear-gradient(90deg, var(--text-color), transparent);
       bottom: -10px;
       left: 50%;
       transform: translateX(-50%);
@@ -77,8 +101,59 @@
     .subtitle {
       font-size: 1.1rem;
       font-weight: 400;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-color);
+      opacity: 0.7;
       margin-bottom: 30px;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+    }
+
+    .theme-toggle {
+      width: 60px;
+      height: 30px;
+      background: var(--glass-bg);
+      border-radius: 15px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5px;
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle::after {
+      content: "";
+      width: 20px;
+      height: 20px;
+      background: var(--text-color);
+      border-radius: 50%;
+      position: absolute;
+      left: 5px;
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="light"] .theme-toggle::after {
+      left: 35px;
+    }
+
+    .theme-toggle .moon, .theme-toggle .sun {
+      font-size: 14px;
+      line-height: 1;
+      z-index: 1;
+    }
+
+    .theme-toggle .moon {
+      margin-left: auto;
     }
 
     /* Prism-like card styles */
@@ -86,8 +161,8 @@
       background: var(--glass-bg);
       border-radius: 8px;
       box-shadow: var(--card-shadow);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
       border: 1px solid var(--glass-border);
       padding: 30px;
       margin-bottom: 40px;
@@ -111,8 +186,8 @@
       right: 0;
       bottom: 0;
       z-index: -1;
-      opacity: 0.05;
-      background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+      opacity: 0.1;
+      background: var(--card-highlight);
     }
 
     .prism-card:hover {
@@ -124,8 +199,8 @@
       font-weight: 600;
       margin-bottom: 20px;
       padding-bottom: 15px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-light);
+      border-bottom: 1px solid var(--glass-border);
+      color: var(--text-color);
       position: relative;
     }
 
@@ -136,19 +211,19 @@
       left: 0;
       width: 60px;
       height: 2px;
-      background: #fff;
+      background: var(--border-highlight);
     }
 
     /* Upload section styles */
     .upload-area {
-      border: 1px dashed rgba(255, 255, 255, 0.3);
+      border: 1px dashed var(--glass-border);
       border-radius: 8px;
       padding: 40px 20px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s ease;
       margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--upload-area-bg);
       position: relative;
       overflow: hidden;
     }
@@ -160,25 +235,25 @@
       right: -10px;
       width: 20px;
       height: 20px;
-      background: #fff;
+      background: var(--border-highlight);
       opacity: 0.1;
       transform: rotate(45deg);
     }
 
     .upload-area:hover {
-      border-color: #fff;
-      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-highlight);
     }
 
     .upload-icon {
       font-size: 2.5rem;
       margin-bottom: 15px;
-      color: #fff;
+      color: var(--text-color);
     }
 
     .upload-text {
       margin-bottom: 15px;
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-color);
+      opacity: 0.8;
     }
 
     .file-input {
@@ -187,19 +262,20 @@
 
     .selected-file {
       font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-color);
+      opacity: 0.9;
       margin-top: 10px;
       padding: 8px 16px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--input-bg);
       display: inline-block;
     }
 
     /* Button styles */
     .btn {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--glass-border);
       padding: 14px 28px;
       border-radius: 4px;
       cursor: pointer;
@@ -222,7 +298,7 @@
       left: 0;
       width: 0;
       height: 100%;
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--hover-bg);
       z-index: -1;
       transition: width 0.3s ease;
     }
@@ -251,7 +327,7 @@
     .detected-count {
       font-size: 0.9rem;
       padding: 4px 10px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--input-bg);
       border-radius: 20px;
     }
 
@@ -259,7 +335,8 @@
       font-size: 1rem;
       font-weight: 500;
       margin: 20px 0 15px;
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-color);
+      opacity: 0.8;
     }
 
     .image-container {
@@ -287,7 +364,7 @@
       align-items: center;
       padding: 16px;
       margin-bottom: 12px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--input-bg);
       border-radius: 4px;
       transition: all 0.3s ease;
       position: relative;
@@ -301,11 +378,11 @@
       left: 0;
       width: 4px;
       height: 100%;
-      background: #fff;
+      background: var(--item-marker);
     }
 
     .prediction-item:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--hover-bg);
     }
 
     .prediction-class {
@@ -315,7 +392,7 @@
     }
 
     .prediction-confidence {
-      color: #fff;
+      color: var(--text-color);
       font-weight: 600;
       font-size: 1rem;
     }
@@ -334,14 +411,20 @@
       height: 40px;
       border: 3px solid rgba(255, 255, 255, 0.1);
       border-radius: 50%;
-      border-top: 3px solid #fff;
+      border-top: 3px solid var(--border-highlight);
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
     }
 
+    [data-theme="light"] .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top: 3px solid var(--border-highlight);
+    }
+
     .loading-text {
       font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-color);
+      opacity: 0.7;
     }
 
     @keyframes spin {
@@ -353,23 +436,23 @@
     .no-failures {
       text-align: center;
       padding: 30px;
-      color: #fff;
+      color: var(--text-color);
     }
 
     /* Error message */
     .error-message {
-      color: #fff;
+      color: var(--text-color);
       padding: 20px;
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid var(--glass-border);
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--error-bg);
     }
 
     /* Bounding box styles */
     .bounding-box {
       position: absolute;
-      border: 2px solid #fff;
+      border: 2px solid var(--border-highlight);
       box-sizing: border-box;
     }
 
@@ -377,8 +460,8 @@
       position: absolute;
       top: -30px;
       left: 0;
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
+      background: var(--glass-bg);
+      color: var(--text-color);
       padding: 4px 10px;
       font-size: 12px;
       border-radius: 4px;
@@ -397,7 +480,7 @@
     .confidence-bar {
       flex: 1;
       height: 6px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--input-bg);
       border-radius: 4px;
       overflow: hidden;
       margin-right: 15px;
@@ -405,7 +488,7 @@
 
     .confidence-fill {
       height: 100%;
-      background: #fff;
+      background: var(--border-highlight);
       border-radius: 4px;
     }
 
@@ -431,6 +514,13 @@
 </head>
 <body>
   <canvas id="webgl-canvas"></canvas>
+  
+  <div class="theme-toggle-container">
+    <div class="theme-toggle" id="themeToggle">
+      <span class="sun">☀️</span>
+      <span class="moon">🌙</span>
+    </div>
+  </div>
   
   <div class="container">
     <header class="header">
@@ -480,6 +570,7 @@
     uniform float yScale;
     uniform float distortion;
     uniform vec2 mouse;
+    uniform bool isLightTheme;
     
     void main() {
       vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
@@ -496,10 +587,19 @@
       float gx = p.x;
       float bx = p.x * (1.0 - d);
     
-      // Add cursor influence to waves
-      float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
-      float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
-      float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
+      float r, g, b;
+      
+      if (isLightTheme) {
+        // Light theme - subtractive wave overlaps (dark where waves meet)
+        r = 1.0 - 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
+        g = 1.0 - 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
+        b = 1.0 - 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
+      } else {
+        // Dark theme - additive wave overlaps (bright where waves meet)
+        r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
+        g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
+        b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
+      }
       
       gl_FragColor = vec4(r, g, b, 1.0);
     }
@@ -597,6 +697,9 @@
         // Mouse position tracking
         this.mouseX = 0;
         this.mouseY = 0;
+        
+        // Theme state (default is dark)
+        this.isLightTheme = false;
 
         this.uniforms = {
           resolution: { type: "v2", value: [ this.canvasWidth, this.canvasHeight ] },
@@ -604,7 +707,8 @@
           xScale: { type: "f", value: 1.0 },
           yScale: { type: "f", value: 0.5 },
           distortion: { type: "f", value: 0.050 },
-          mouse: { type: "v2", value: [ 0.5, 0.5 ] }
+          mouse: { type: "v2", value: [ 0.5, 0.5 ] },
+          isLightTheme: { type: "bool", value: this.isLightTheme }
         };
 
         this.stage = stage;
@@ -682,6 +786,13 @@
         this.stage.scene.add(this.mesh);
       }
       
+      updateTheme(isLight) {
+        this.isLightTheme = isLight;
+        if (this.uniforms.isLightTheme) {
+          this.uniforms.isLightTheme.value = isLight;
+        }
+      }
+      
       _updateDimensions() {
         if (this.canvas) {
           this.canvasWidth = this.canvas.width;
@@ -709,11 +820,43 @@
 
     // UI functionality
     document.addEventListener('DOMContentLoaded', function() {
+      // Theme toggle functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const htmlElement = document.documentElement;
+      let mesh; // Will be initialized later
+      
+      themeToggle.addEventListener('click', function() {
+        const isLightTheme = htmlElement.getAttribute('data-theme') === 'light';
+        const newTheme = isLightTheme ? 'dark' : 'light';
+        
+        htmlElement.setAttribute('data-theme', newTheme);
+        
+        // Update shader uniform for theme
+        if (mesh) {
+          mesh.updateTheme(!isLightTheme);
+        }
+        
+        // Save theme preference
+        localStorage.setItem('theme', newTheme);
+      });
+      
+      // Check for saved theme preference
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        htmlElement.setAttribute('data-theme', savedTheme);
+        // Will set shader theme after mesh is initialized
+      }
+      
       // Initialize THREE.js background
       const stage = new Stage();
       stage.init();
-      const mesh = new Mesh(stage);
+      mesh = new Mesh(stage);
       mesh.init();
+      
+      // Apply saved theme to shader if it's light
+      if (savedTheme === 'light') {
+        mesh.updateTheme(true);
+      }
 
       window.addEventListener("resize", () => {
         stage.onResize();
@@ -745,19 +888,19 @@
       // Handle drag and drop
       uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
-        uploadArea.style.borderColor = '#fff';
-        uploadArea.style.background = 'rgba(255, 255, 255, 0.1)';
+        uploadArea.style.borderColor = 'var(--border-highlight)';
+        uploadArea.style.background = 'var(--hover-bg)';
       });
       
       uploadArea.addEventListener('dragleave', function() {
-        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-        uploadArea.style.background = 'rgba(255, 255, 255, 0.05)';
+        uploadArea.style.borderColor = 'var(--glass-border)';
+        uploadArea.style.background = 'var(--upload-area-bg)';
       });
       
       uploadArea.addEventListener('drop', function(e) {
         e.preventDefault();
-        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-        uploadArea.style.background = 'rgba(255, 255, 255, 0.05)';
+        uploadArea.style.borderColor = 'var(--glass-border)';
+        uploadArea.style.background = 'var(--upload-area-bg)';
         
         if (e.dataTransfer.files.length) {
           fileInput.files = e.dataTransfer.files;
