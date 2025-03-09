@@ -1,124 +1,926 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Print Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f5f5f5;
+    :root {
+      /* Dark Theme (Default) */
+      --glass-bg: rgba(30, 30, 40, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --text-color: #ffffff;
+      --accent: #ffffff;
+      --upload-area-bg: rgba(20, 20, 30, 0.4);
+      --input-bg: rgba(40, 40, 60, 0.6);
+      --hover-bg: rgba(60, 60, 80, 0.7);
+      --error-bg: rgba(60, 30, 30, 0.6);
+      --card-highlight: linear-gradient(135deg, rgba(255,255,255,0.4), transparent);
+      --border-highlight: #fff;
+      --item-marker: #fff;
     }
-    h1 {
-      color: #333;
+
+    [data-theme="light"] {
+      /* Light Theme */
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+      --text-color: #333333;
+      --accent: #333333;
+      --upload-area-bg: rgba(240, 240, 245, 0.7);
+      --input-bg: rgba(220, 220, 230, 0.8);
+      --hover-bg: rgba(200, 200, 220, 0.8);
+      --error-bg: rgba(255, 220, 220, 0.8);
+      --card-highlight: linear-gradient(135deg, rgba(0,0,0,0.05), transparent);
+      --border-highlight: #333;
+      --item-marker: #333;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      margin: 0;
+    }
+
+    #webgl-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
       text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+    }
+
+    .logo {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 10px;
+      letter-spacing: -1px;
+      position: relative;
+    }
+
+    .logo::after {
+      content: "";
+      position: absolute;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--text-color), transparent);
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--text-color);
+      opacity: 0.7;
       margin-bottom: 30px;
     }
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-bottom: 20px;
+
+    /* Theme Toggle Button */
+    .theme-toggle-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
     }
-    .upload-section {
-      margin-bottom: 20px;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    input[type="file"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    button {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background-color: #3367d6;
-    }
-    #resultsContainer {
-      margin-top: 20px;
-    }
-    .prediction-list {
-      list-style-type: none;
-      padding: 0;
-    }
-    .prediction-list li {
-      padding: 10px;
-      margin-bottom: 5px;
-      background-color: #f0f0f0;
-      border-radius: 4px;
-      display: flex;
-      justify-content: space-between;
-    }
-    .image-container {
+
+    .theme-toggle {
+      width: 60px;
+      height: 30px;
+      background: var(--glass-bg);
+      border-radius: 15px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       position: relative;
-      margin-bottom: 20px;
-    }
-    .image-container img {
-      max-width: 100%;
-      border-radius: 4px;
-    }
-    .loading {
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 20px;
+      justify-content: space-between;
+      padding: 0 5px;
+      transition: all 0.3s ease;
     }
-    .spinner {
-      border: 4px solid rgba(0, 0, 0, 0.1);
+
+    .theme-toggle::after {
+      content: "";
+      width: 20px;
+      height: 20px;
+      background: var(--text-color);
       border-radius: 50%;
-      border-top: 4px solid #3498db;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
+      position: absolute;
+      left: 5px;
+      transition: all 0.3s ease;
     }
+
+    [data-theme="light"] .theme-toggle::after {
+      left: 35px;
+    }
+
+    .theme-toggle .moon, .theme-toggle .sun {
+      font-size: 14px;
+      line-height: 1;
+      z-index: 1;
+    }
+
+    .theme-toggle .moon {
+      margin-left: auto;
+    }
+
+    /* Prism-like card styles */
+    .prism-card {
+      background: var(--glass-bg);
+      border-radius: 8px;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border);
+      padding: 30px;
+      margin-bottom: 40px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      clip-path: polygon(
+        0% 0%, 
+        100% 0%, 
+        100% 85%, 
+        95% 100%, 
+        0% 100%
+      );
+    }
+
+    .prism-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      opacity: 0.1;
+      background: var(--card-highlight);
+    }
+
+    .prism-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--glass-border);
+      color: var(--text-color);
+      position: relative;
+    }
+
+    .card-title::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: var(--border-highlight);
+    }
+
+    /* Upload section styles */
+    .upload-area {
+      border: 1px dashed var(--glass-border);
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+      background: var(--upload-area-bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 20px;
+      height: 20px;
+      background: var(--border-highlight);
+      opacity: 0.1;
+      transform: rotate(45deg);
+    }
+
+    .upload-area:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      color: var(--text-color);
+    }
+
+    .upload-text {
+      margin-bottom: 15px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .selected-file {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      opacity: 0.9;
+      margin-top: 10px;
+      padding: 8px 16px;
+      border-radius: 4px;
+      background: var(--input-bg);
+      display: inline-block;
+    }
+
+    /* Button styles */
+    .btn {
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--glass-border);
+      padding: 14px 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      display: inline-block;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background: var(--hover-bg);
+      z-index: -1;
+      transition: width 0.3s ease;
+    }
+
+    .btn:hover::before {
+      width: 100%;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-lg {
+      width: 100%;
+      padding: 16px 32px;
+    }
+
+    /* Results section styles */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .detected-count {
+      font-size: 0.9rem;
+      padding: 4px 10px;
+      background: var(--input-bg);
+      border-radius: 20px;
+    }
+
+    .results-subtitle {
+      font-size: 1rem;
+      font-weight: 500;
+      margin: 20px 0 15px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+
+    .image-container {
+      position: relative;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .image-container img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Prediction list styles */
+    .prediction-list {
+      list-style-type: none;
+    }
+
+    .prediction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: var(--input-bg);
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .prediction-item::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--item-marker);
+    }
+
+    .prediction-item:hover {
+      background: var(--hover-bg);
+    }
+
+    .prediction-class {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+
+    .prediction-confidence {
+      color: var(--text-color);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    /* Loading animation */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid var(--border-highlight);
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    [data-theme="light"] .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top: 3px solid var(--border-highlight);
+    }
+
+    .loading-text {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      opacity: 0.7;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* No failures message */
+    .no-failures {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-color);
+    }
+
+    /* Error message */
+    .error-message {
+      color: var(--text-color);
+      padding: 20px;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+      border-radius: 4px;
+      background: var(--error-bg);
+    }
+
+    /* Bounding box styles */
+    .bounding-box {
+      position: absolute;
+      border: 2px solid var(--border-highlight);
+      box-sizing: border-box;
+    }
+
+    .bounding-box-label {
+      position: absolute;
+      top: -30px;
+      left: 0;
+      background: var(--glass-bg);
+      color: var(--text-color);
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Confidence meter */
+    .confidence-meter {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      margin-left: 20px;
+    }
+
+    .confidence-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--input-bg);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-right: 15px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--border-highlight);
+      border-radius: 4px;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+      
+      .prism-card {
+        padding: 20px;
+      }
+      
+      .logo {
+        font-size: 2rem;
+      }
+      
+      .btn-lg {
+        padding: 14px 20px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>3D Print Monitor</h1>
+  <canvas id="webgl-canvas"></canvas>
   
-  <div class="card">
-    <div class="upload-section">
-      <h2>Upload Image</h2>
-      <div class="form-group">
-        <label for="fileInput">Select an image of your 3D print:</label>
-        <input type="file" id="fileInput" accept="image/*">
-      </div>
-      <button id="detectButton">Detect Failures</button>
+  <div class="theme-toggle-container">
+    <div class="theme-toggle" id="themeToggle">
+      <span class="sun">☀️</span>
+      <span class="moon">🌙</span>
     </div>
   </div>
   
-  <div id="resultsContainer"></div>
+  <div class="container">
+    <header class="header">
+      <h1 class="logo">3D Print Monitor</h1>
+      <p class="subtitle">AI-powered 3D printing failure detection</p>
+    </header>
+    
+    <main>
+      <div class="prism-card">
+        <h2 class="card-title">Upload Image</h2>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <p class="upload-text">Drop image here or click to browse</p>
+          <input type="file" id="fileInput" class="file-input" accept="image/*">
+          <div id="fileInfo" style="display: none;">
+            <p class="selected-file"><span id="fileName">No file selected</span></p>
+          </div>
+        </div>
+        <button id="detectButton" class="btn btn-lg">Analyze Print</button>
+      </div>
+      
+      <div id="resultsContainer"></div>
+    </main>
+  </div>
+
+  <!-- vertexShader -->
+  <script id="js-vertex-shader" type="x-shader/x-vertex">
+    attribute vec3 position;
+    
+    void main()	{
+      gl_Position = vec4(position, 1.0);
+    }
+  </script>
+  
+  <!-- fragmentShader -->
+  <script id="js-fragment-shader" type="x-shader/x-fragment">
+    precision highp float;
+    uniform vec2 resolution;
+    uniform float time;
+    uniform float xScale;
+    uniform float yScale;
+    uniform float distortion;
+    uniform vec2 mouse;
+    uniform bool isLightTheme;
+    
+    void main() {
+      vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
+      
+      // Calculate distance from cursor
+      vec2 mousePos = (mouse * 2.0 - resolution) / min(resolution.x, resolution.y);
+      float cursorDistance = length(p - mousePos);
+      float cursorInfluence = 0.15 / (cursorDistance + 0.1);
+      
+      // Add cursor distortion to base distortion
+      float d = length(p) * distortion + cursorInfluence * 0.03;
+      
+      float rx = p.x * (1.0 + d);
+      float gx = p.x;
+      float bx = p.x * (1.0 - d);
+    
+      float r, g, b;
+      
+      if (isLightTheme) {
+        // Light theme - subtractive wave overlaps (dark where waves meet)
+        r = 1.0 - 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
+        g = 1.0 - 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
+        b = 1.0 - 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
+      } else {
+        // Dark theme - additive wave overlaps (bright where waves meet)
+        r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.0) * 0.1);
+        g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale + cursorInfluence * sin(time * 2.5) * 0.05);
+        b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale + cursorInfluence * sin(time * 3.0) * 0.08);
+      }
+      
+      gl_FragColor = vec4(r, g, b, 1.0);
+    }
+  </script>
   
   <script>
+    class Stage {
+      constructor() {
+        this.renderParam = {
+          clearColor: 0x666666,
+          width: window.innerWidth,
+          height: window.innerHeight
+        };
+
+        this.cameraParam = {
+          left: -1,
+          right: 1,
+          top: 1,
+          bottom: 1,
+          near: 0,
+          far: -1
+        };
+
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.geometry = null;
+        this.material = null;
+        this.mesh = null;
+
+        this.isInitialized = false;
+      }
+
+      init() {
+        this._setScene();
+        this._setRender();
+        this._setCamera();
+
+        this.isInitialized = true;
+      }
+
+      _setScene() {
+        this.scene = new THREE.Scene();
+      }
+
+      _setRender() {
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: document.getElementById("webgl-canvas")
+        });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setClearColor(new THREE.Color(this.renderParam.clearColor));
+        this.renderer.setSize(this.renderParam.width, this.renderParam.height);
+      }
+
+      _setCamera() {
+        if (!this.isInitialized) {
+          this.camera = new THREE.OrthographicCamera(
+            this.cameraParam.left,
+            this.cameraParam.right,
+            this.cameraParam.top,
+            this.cameraParam.bottom,
+            this.cameraParam.near,
+            this.cameraParam.far
+          );
+        }
+        
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        this.camera.aspect = windowWidth / windowHeight;
+
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(windowWidth, windowHeight);
+      }
+
+      _render() {
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      onResize() {
+        this._setCamera();
+      }
+
+      onRaf() {
+        this._render();
+      }
+    }
+
+    class Mesh {
+      constructor(stage) {
+        this.canvas = document.getElementById("webgl-canvas");
+        this.canvasWidth = this.canvas.width;
+        this.canvasHeight = this.canvas.height;
+        
+        // Mouse position tracking
+        this.mouseX = 0;
+        this.mouseY = 0;
+        
+        // Theme state (default is dark)
+        this.isLightTheme = false;
+
+        this.uniforms = {
+          resolution: { type: "v2", value: [ this.canvasWidth, this.canvasHeight ] },
+          time: { type: "f", value: 0.0 },
+          xScale: { type: "f", value: 1.0 },
+          yScale: { type: "f", value: 0.5 },
+          distortion: { type: "f", value: 0.050 },
+          mouse: { type: "v2", value: [ 0.5, 0.5 ] },
+          isLightTheme: { type: "bool", value: this.isLightTheme }
+        };
+
+        this.stage = stage;
+
+        this.mesh = null;
+        
+        this.xScale = 1.0;
+        this.yScale = 0.5;
+        this.distortion = 0.050;
+        
+        // Set up mouse move listener
+        this._setupMouseTracking();
+      }
+
+      init() {
+        this._setMesh();
+      }
+      
+      _setupMouseTracking() {
+        window.addEventListener('mousemove', (e) => {
+          // Normalize mouse coordinates
+          this.mouseX = e.clientX;
+          this.mouseY = e.clientY;
+          
+          // Update uniform
+          if (this.uniforms.mouse) {
+            this.uniforms.mouse.value[0] = this.mouseX;
+            this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+          }
+        });
+        
+        // Handle touch for mobile
+        window.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) {
+            // Prevent scrolling
+            e.preventDefault();
+            
+            // Normalize touch coordinates
+            this.mouseX = e.touches[0].clientX;
+            this.mouseY = e.touches[0].clientY;
+            
+            // Update uniform
+            if (this.uniforms.mouse) {
+              this.uniforms.mouse.value[0] = this.mouseX;
+              this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+            }
+          }
+        }, { passive: false });
+      }
+
+      _setMesh() {
+        const position = [
+          -1.0, -1.0, 0.0,
+           1.0, -1.0, 0.0,
+          -1.0,  1.0, 0.0,
+           1.0, -1.0, 0.0,
+          -1.0,  1.0, 0.0,
+           1.0,  1.0, 0.0
+        ];
+
+        const positions = new THREE.BufferAttribute(new Float32Array(position), 3);
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", positions);
+
+        const material = new THREE.RawShaderMaterial({
+          vertexShader: document.getElementById("js-vertex-shader").textContent,
+          fragmentShader: document.getElementById("js-fragment-shader").textContent,
+          uniforms: this.uniforms,
+          side: THREE.DoubleSide
+        });
+
+        this.mesh = new THREE.Mesh(geometry, material);
+
+        this.stage.scene.add(this.mesh);
+      }
+      
+      updateTheme(isLight) {
+        this.isLightTheme = isLight;
+        if (this.uniforms.isLightTheme) {
+          this.uniforms.isLightTheme.value = isLight;
+        }
+      }
+      
+      _updateDimensions() {
+        if (this.canvas) {
+          this.canvasWidth = this.canvas.width;
+          this.canvasHeight = this.canvas.height;
+          
+          if (this.uniforms.resolution) {
+            this.uniforms.resolution.value[0] = this.canvasWidth;
+            this.uniforms.resolution.value[1] = this.canvasHeight;
+          }
+        }
+      }
+      
+      _render() {
+        // Slower speed for the waves (reduced from 0.01)
+        this.uniforms.time.value += 0.004;
+        
+        // Update dimensions if window is resized
+        this._updateDimensions();
+      }
+
+      onRaf() {
+        this._render();
+      }
+    }
+
+    // UI functionality
     document.addEventListener('DOMContentLoaded', function() {
+      // Theme toggle functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const htmlElement = document.documentElement;
+      let mesh; // Will be initialized later
+      
+      themeToggle.addEventListener('click', function() {
+        const isLightTheme = htmlElement.getAttribute('data-theme') === 'light';
+        const newTheme = isLightTheme ? 'dark' : 'light';
+        
+        htmlElement.setAttribute('data-theme', newTheme);
+        
+        // Update shader uniform for theme
+        if (mesh) {
+          mesh.updateTheme(!isLightTheme);
+        }
+        
+        // Save theme preference
+        localStorage.setItem('theme', newTheme);
+      });
+      
+      // Check for saved theme preference
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        htmlElement.setAttribute('data-theme', savedTheme);
+        // Will set shader theme after mesh is initialized
+      }
+      
+      // Initialize THREE.js background
+      const stage = new Stage();
+      stage.init();
+      mesh = new Mesh(stage);
+      mesh.init();
+      
+      // Apply saved theme to shader if it's light
+      if (savedTheme === 'light') {
+        mesh.updateTheme(true);
+      }
+
+      window.addEventListener("resize", () => {
+        stage.onResize();
+      });
+
+      const _raf = () => {
+        window.requestAnimationFrame(() => {
+          stage.onRaf();
+          mesh.onRaf();
+          _raf();
+        });
+      };
+
+      _raf();
+
+      // UI event handling
       const detectButton = document.getElementById('detectButton');
       const fileInput = document.getElementById('fileInput');
+      const uploadArea = document.getElementById('uploadArea');
+      const fileInfo = document.getElementById('fileInfo');
+      const fileName = document.getElementById('fileName');
       const resultsContainer = document.getElementById('resultsContainer');
       
+      // Handle upload area clicks
+      uploadArea.addEventListener('click', function() {
+        fileInput.click();
+      });
+      
+      // Handle drag and drop
+      uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--border-highlight)';
+        uploadArea.style.background = 'var(--hover-bg)';
+      });
+      
+      uploadArea.addEventListener('dragleave', function() {
+        uploadArea.style.borderColor = 'var(--glass-border)';
+        uploadArea.style.background = 'var(--upload-area-bg)';
+      });
+      
+      uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'var(--glass-border)';
+        uploadArea.style.background = 'var(--upload-area-bg)';
+        
+        if (e.dataTransfer.files.length) {
+          fileInput.files = e.dataTransfer.files;
+          updateFileName();
+        }
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', updateFileName);
+      
+      function updateFileName() {
+        if (fileInput.files && fileInput.files.length > 0) {
+          fileInfo.style.display = 'block';
+          fileName.textContent = fileInput.files[0].name;
+        } else {
+          fileInfo.style.display = 'none';
+        }
+      }
+      
+      // Handle detection button click
       detectButton.addEventListener('click', async function() {
         if (!fileInput.files || fileInput.files.length === 0) {
           alert('Please select an image first');
@@ -127,9 +929,9 @@
         
         // Show loading state
         resultsContainer.innerHTML = `
-          <div class="card loading">
+          <div class="prism-card loading">
             <div class="spinner"></div>
-            <p>Processing image...</p>
+            <p class="loading-text">Analyzing your 3D print...</p>
           </div>
         `;
         
@@ -150,9 +952,11 @@
           displayResults(data);
         } catch (error) {
           resultsContainer.innerHTML = `
-            <div class="card">
-              <h2>Error</h2>
-              <p>${error.message || 'Failed to process image'}</p>
+            <div class="prism-card">
+              <h2 class="card-title">Error</h2>
+              <div class="error-message">
+                ${error.message || 'Failed to process image'}
+              </div>
             </div>
           `;
         }
@@ -161,9 +965,15 @@
       function displayResults(data) {
         if (!data.predictions || data.predictions.length === 0) {
           resultsContainer.innerHTML = `
-            <div class="card">
-              <h2>Results</h2>
-              <p>No failures detected in this image.</p>
+            <div class="prism-card">
+              <h2 class="card-title">Results</h2>
+              <div class="no-failures">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <p>No failures detected in this image. Your print looks good!</p>
+              </div>
             </div>
           `;
           return;
@@ -175,20 +985,31 @@
         
         // Create HTML for results
         let resultsHTML = `
-          <div class="card">
-            <h2>Detection Results</h2>
-            <div class="image-container" id="imageWrapper" style="position: relative;">
+          <div class="prism-card">
+            <div class="results-header">
+              <h2 class="card-title">Detection Results</h2>
+              <div class="detected-count">${data.predictions.length} issues found</div>
+            </div>
+            <div class="image-container" id="imageWrapper">
               <img src="${URL.createObjectURL(fileInput.files[0])}" alt="Uploaded image" style="width: 100%;">
             </div>
-            <h3>Detected Issues (${data.predictions.length}):</h3>
+            <h3 class="results-subtitle">Detected Issues:</h3>
             <ul class="prediction-list">
         `;
         
         data.predictions.forEach((prediction, index) => {
+          const confidencePercent = Math.round(prediction.confidence * 100);
           resultsHTML += `
-            <li>
-              <span>${prediction.class}</span>
-              <span>${Math.round(prediction.confidence * 100)}% confidence</span>
+            <li class="prediction-item">
+              <div class="prediction-class">
+                <span>${prediction.class}</span>
+              </div>
+              <div class="confidence-meter">
+                <div class="confidence-bar">
+                  <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                </div>
+                <span class="prediction-confidence">${confidencePercent}%</span>
+              </div>
             </li>
           `;
         });
@@ -213,26 +1034,16 @@
           const height = prediction.height / imageHeight * 100;
           
           // Style the box
-          box.style.position = 'absolute';
+          box.className = 'bounding-box';
           box.style.left = `${x}%`;
           box.style.top = `${y}%`;
           box.style.width = `${width}%`;
           box.style.height = `${height}%`;
-          box.style.border = '3px solid red';
-          box.style.boxSizing = 'border-box';
           
           // Add label
           const label = document.createElement('div');
+          label.className = 'bounding-box-label';
           label.textContent = `${prediction.class} (${Math.round(prediction.confidence * 100)}%)`;
-          label.style.position = 'absolute';
-          label.style.top = '-25px';
-          label.style.left = '0';
-          label.style.background = 'red';
-          label.style.color = 'white';
-          label.style.padding = '2px 6px';
-          label.style.fontSize = '12px';
-          label.style.borderRadius = '3px';
-          label.style.whiteSpace = 'nowrap';
           
           box.appendChild(label);
           imageWrapper.appendChild(box);

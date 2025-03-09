@@ -7,18 +7,18 @@ exports.roboflowRoutes = void 0;
 const express_1 = __importDefault(require("express"));
 const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
-const server_1 = require("../server");
+const uploadConfig_1 = require("../uploadConfig");
 const router = express_1.default.Router();
 // Environment variables
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || 'OW2ci9cwEzLofsYscZgf';
-const PROJECT_ID = process.env.PROJECT_ID || '3dprinting';
-const MODEL_VERSION = process.env.MODEL_VERSION || '6';
+const PROJECT_ID = process.env.PROJECT_ID || '3dprinting-iscuw';
+const MODEL_VERSION = process.env.MODEL_VERSION || '1';
 /**
  * @route POST /api/roboflow/detect
  * @desc Detect 3D printing failures in an uploaded image
  * @access Public
  */
-router.post('/detect', server_1.upload.single('image'), (req, res, next) => {
+router.post('/detect', uploadConfig_1.upload.single('image'), (req, res, next) => {
     (async () => {
         try {
             if (!req.file) {
