@@ -271,6 +271,100 @@
       display: inline-block;
     }
 
+    /* Input method toggle */
+    .input-method-toggle {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    .input-method-btn {
+      background: var(--input-bg);
+      color: var(--text-color);
+      opacity: 0.7;
+      border: 1px solid var(--glass-border);
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.8rem;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .input-method-btn.active {
+      background: var(--hover-bg);
+      opacity: 1;
+    }
+
+    /* Webcam container */
+    .webcam-container {
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .webcam-inner {
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 75%; /* 4:3 Aspect Ratio */
+      background: var(--upload-area-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .webcam-feed {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .webcam-permissions {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .capture-btn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--glass-border);
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .capture-btn:hover {
+      background: var(--hover-bg);
+    }
+
+    .webcam-error {
+      color: var(--text-color);
+      text-align: center;
+      padding: 30px;
+      background: var(--error-bg);
+      border-radius: 8px;
+    }
+
     /* Button styles */
     .btn {
       background: var(--input-bg);
@@ -531,6 +625,25 @@
     <main>
       <div class="prism-card">
         <h2 class="card-title">Upload Image</h2>
+        
+        <div class="input-method-toggle">
+          <div class="input-method-btn active" id="uploadBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Upload File
+          </div>
+          <div class="input-method-btn" id="webcamBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Use Webcam
+          </div>
+        </div>
+        
         <div class="upload-area" id="uploadArea">
           <div class="upload-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -545,6 +658,25 @@
             <p class="selected-file"><span id="fileName">No file selected</span></p>
           </div>
         </div>
+        
+        <div class="webcam-container" id="webcamContainer">
+          <div class="webcam-inner">
+            <video id="webcamFeed" class="webcam-feed" autoplay playsinline></video>
+            <div class="webcam-permissions" id="webcamPermissions">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <p>Please allow camera access</p>
+              <button id="enableCameraBtn" class="capture-btn">Enable Camera</button>
+            </div>
+            <canvas id="webcamCanvas" style="display: none;"></canvas>
+          </div>
+          <div style="text-align: center; margin-top: 10px;">
+            <button id="captureBtn" class="capture-btn">Capture Image</button>
+          </div>
+        </div>
+        
         <button id="detectButton" class="btn btn-lg">Analyze Print</button>
       </div>
       
@@ -880,6 +1012,116 @@
       const fileName = document.getElementById('fileName');
       const resultsContainer = document.getElementById('resultsContainer');
       
+      // Input method toggle
+      const uploadBtn = document.getElementById('uploadBtn');
+      const webcamBtn = document.getElementById('webcamBtn');
+      const webcamContainer = document.getElementById('webcamContainer');
+      const webcamFeed = document.getElementById('webcamFeed');
+      const webcamPermissions = document.getElementById('webcamPermissions');
+      const enableCameraBtn = document.getElementById('enableCameraBtn');
+      const captureBtn = document.getElementById('captureBtn');
+      const webcamCanvas = document.getElementById('webcamCanvas');
+      
+      // Webcam variables
+      let stream = null;
+      let capturedImage = null;
+      
+      // Toggle between upload and webcam
+      uploadBtn.addEventListener('click', function() {
+        uploadBtn.classList.add('active');
+        webcamBtn.classList.remove('active');
+        uploadArea.style.display = 'block';
+        webcamContainer.style.display = 'none';
+        capturedImage = null;
+      });
+      
+      webcamBtn.addEventListener('click', function() {
+        webcamBtn.classList.add('active');
+        uploadBtn.classList.remove('active');
+        uploadArea.style.display = 'none';
+        webcamContainer.style.display = 'block';
+        
+        // Check if we already have stream
+        if (!stream) {
+          webcamPermissions.style.display = 'flex';
+        }
+      });
+      
+      // Handle webcam initialization
+      enableCameraBtn.addEventListener('click', initWebcam);
+      
+      function initWebcam() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(mediaStream) {
+              stream = mediaStream;
+              webcamFeed.srcObject = mediaStream;
+              webcamPermissions.style.display = 'none';
+              webcamFeed.style.display = 'block';
+              captureBtn.disabled = false;
+            })
+            .catch(function(err) {
+              console.error('Unable to access webcam', err);
+              webcamPermissions.innerHTML = `
+                <div class="webcam-error">
+                  <p>Unable to access webcam: ${err.message}</p>
+                  <p>Please make sure your camera is connected and permissions are granted.</p>
+                </div>
+              `;
+            });
+        } else {
+          webcamPermissions.innerHTML = `
+            <div class="webcam-error">
+              <p>Your browser doesn't support webcam access.</p>
+              <p>Please try a modern browser like Chrome or Firefox.</p>
+            </div>
+          `;
+        }
+      }
+      
+      // Handle image capture
+      captureBtn.addEventListener('click', function() {
+        if (!stream) return;
+        
+        const context = webcamCanvas.getContext('2d');
+        webcamCanvas.width = webcamFeed.videoWidth;
+        webcamCanvas.height = webcamFeed.videoHeight;
+        
+        // Draw the video frame to the canvas
+        context.drawImage(webcamFeed, 0, 0, webcamCanvas.width, webcamCanvas.height);
+        
+        // Get the image data
+        capturedImage = webcamCanvas.toDataURL('image/png');
+        
+        // Give visual feedback that image was captured
+        const flash = document.createElement('div');
+        flash.style.position = 'absolute';
+        flash.style.top = '0';
+        flash.style.left = '0';
+        flash.style.width = '100%';
+        flash.style.height = '100%';
+        flash.style.backgroundColor = 'white';
+        flash.style.opacity = '0.7';
+        flash.style.transition = 'opacity 0.3s ease';
+        
+        const webcamInner = document.querySelector('.webcam-inner');
+        webcamInner.appendChild(flash);
+        
+        // Fade out and remove the flash
+        setTimeout(() => {
+          flash.style.opacity = '0';
+          setTimeout(() => {
+            flash.remove();
+          }, 300);
+        }, 50);
+        
+        // Change the capture button text to indicate success
+        captureBtn.textContent = 'Image Captured';
+        setTimeout(() => {
+          captureBtn.textContent = 'Capture Again';
+        }, 1500);
+      });
+      
       // Handle upload area clicks
       uploadArea.addEventListener('click', function() {
         fileInput.click();
@@ -922,8 +1164,17 @@
       
       // Handle detection button click
       detectButton.addEventListener('click', async function() {
-        if (!fileInput.files || fileInput.files.length === 0) {
+        // Check which input method is active
+        const isWebcamActive = webcamBtn.classList.contains('active');
+        
+        // Validation
+        if (!isWebcamActive && (!fileInput.files || fileInput.files.length === 0)) {
           alert('Please select an image first');
+          return;
+        }
+        
+        if (isWebcamActive && !capturedImage) {
+          alert('Please capture an image from your webcam first');
           return;
         }
         
@@ -935,21 +1186,38 @@
           </div>
         `;
         
-        const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
-        
         try {
-          const response = await fetch('http://localhost:5000/api/roboflow/detect', {
-            method: 'POST',
-            body: formData,
-          });
+          let response;
+          
+          if (isWebcamActive) {
+            // Process webcam image
+            const formData = new FormData();
+            
+            // Convert base64 to blob
+            const blob = await fetch(capturedImage).then(res => res.blob());
+            formData.append('image', blob, 'webcam-capture.png');
+            
+            response = await fetch('http://localhost:5000/api/roboflow/detect', {
+              method: 'POST',
+              body: formData,
+            });
+          } else {
+            // Process uploaded file
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            response = await fetch('http://localhost:5000/api/roboflow/detect', {
+              method: 'POST',
+              body: formData,
+            });
+          }
           
           if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
           }
           
           const data = await response.json();
-          displayResults(data);
+          displayResults(data, isWebcamActive ? capturedImage : null);
         } catch (error) {
           resultsContainer.innerHTML = `
             <div class="prism-card">
@@ -962,7 +1230,7 @@
         }
       });
       
-      function displayResults(data) {
+      function displayResults(data, capturedImageUrl = null) {
         if (!data.predictions || data.predictions.length === 0) {
           resultsContainer.innerHTML = `
             <div class="prism-card">
@@ -991,7 +1259,7 @@
               <div class="detected-count">${data.predictions.length} issues found</div>
             </div>
             <div class="image-container" id="imageWrapper">
-              <img src="${URL.createObjectURL(fileInput.files[0])}" alt="Uploaded image" style="width: 100%;">
+              <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
             </div>
             <h3 class="results-subtitle">Detected Issues:</h3>
             <ul class="prediction-list">
