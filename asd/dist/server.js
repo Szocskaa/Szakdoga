@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const roboflow_1 = require("./routes/roboflow");
+const gemini_1 = require("./routes/gemini");
 // Load environment variables
 dotenv_1.default.config();
 // Initialize Express app
@@ -21,6 +22,7 @@ app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
 // Routes
 app.use('/api/roboflow', roboflow_1.roboflowRoutes);
+app.use('/api/gemini', gemini_1.geminiRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: '3D Print Monitor TypeScript API is running' });

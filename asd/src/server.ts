@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { roboflowRoutes } from './routes/roboflow';
+import { geminiRoutes } from './routes/gemini';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
 app.use('/api/roboflow', roboflowRoutes);
+app.use('/api/gemini', geminiRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

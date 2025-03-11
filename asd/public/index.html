@@ -449,46 +449,150 @@
 
     /* Prediction list styles */
     .prediction-list {
-      list-style-type: none;
+      list-style: none;
+      padding: 0;
     }
-
-    .prediction-item {
+    
+    /* Chat window styles */
+    .chat-container {
+      background: var(--glass-bg);
+      border-radius: 8px;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border);
+      padding: 20px;
+      margin-left: 20px;
+      flex: 1;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      margin-bottom: 12px;
-      background: var(--input-bg);
-      border-radius: 4px;
-      transition: all 0.3s ease;
+      flex-direction: column;
+      height: auto;
+      min-height: 400px;
       position: relative;
       overflow: hidden;
     }
-
-    .prediction-item::before {
+    
+    .chat-container::before {
       content: "";
       position: absolute;
       top: 0;
       left: 0;
-      width: 4px;
-      height: 100%;
-      background: var(--item-marker);
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      opacity: 0.1;
+      background: var(--card-highlight);
     }
-
-    .prediction-item:hover {
-      background: var(--hover-bg);
-    }
-
-    .prediction-class {
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-    }
-
-    .prediction-confidence {
-      color: var(--text-color);
+    
+    .chat-title {
+      font-size: 1.5rem;
       font-weight: 600;
-      font-size: 1rem;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--glass-border);
+      color: var(--text-color);
+      position: relative;
+    }
+    
+    .chat-title::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: var(--border-highlight);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding-right: 5px;
+    }
+    
+    .message {
+      margin-bottom: 10px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      max-width: 85%;
+      word-wrap: break-word;
+    }
+    
+    .user-message {
+      background: var(--input-bg);
+      color: var(--text-color);
+      margin-left: auto;
+      border-bottom-right-radius: 2px;
+    }
+    
+    .ai-message {
+      background: var(--hover-bg);
+      color: var(--text-color);
+      margin-right: auto;
+      border-bottom-left-radius: 2px;
+    }
+    
+    .chat-input-container {
+      display: flex;
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      overflow: hidden;
+    }
+    
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 12px 15px;
+      color: var(--text-color);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+    }
+    
+    .chat-input:focus {
+      outline: none;
+    }
+    
+    .send-button {
+      background: var(--hover-bg);
+      color: var(--text-color);
+      border: none;
+      padding: 0 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .send-button:hover {
+      background: var(--border-highlight);
+      color: var(--glass-bg);
+    }
+    
+    .send-button svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .results-flex-container {
+      display: flex;
+      gap: 0;
+      align-items: flex-start;
+    }
+    
+    .results-card {
+      flex: 1;
+    }
+    
+    @media (max-width: 992px) {
+      .results-flex-container {
+        flex-direction: column;
+      }
+      
+      .chat-container {
+        margin-left: 0;
+        margin-top: 20px;
+      }
     }
 
     /* Loading animation */
@@ -1251,18 +1355,22 @@
         const imageWidth = data.image.width;
         const imageHeight = data.image.height;
         
-        // Create HTML for results
+        // Check if any prediction has confidence >= 60%
+        const highProbabilityFailure = data.predictions.some(p => p.confidence >= 0.6);
+        
+        // Start building results HTML
         let resultsHTML = `
-          <div class="prism-card">
-            <div class="results-header">
-              <h2 class="card-title">Detection Results</h2>
-              <div class="detected-count">${data.predictions.length} issues found</div>
-            </div>
-            <div class="image-container" id="imageWrapper">
-              <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
-            </div>
-            <h3 class="results-subtitle">Detected Issues:</h3>
-            <ul class="prediction-list">
+          <div class="results-flex-container">
+            <div class="prism-card results-card">
+              <div class="results-header">
+                <h2 class="card-title">Detection Results</h2>
+                <div class="detected-count">${data.predictions.length} issues found</div>
+              </div>
+              <div class="image-container" id="imageWrapper">
+                <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
+              </div>
+              <h3 class="results-subtitle">Detected Issues:</h3>
+              <ul class="prediction-list">
         `;
         
         data.predictions.forEach((prediction, index) => {
@@ -1283,9 +1391,34 @@
         });
         
         resultsHTML += `
-            </ul>
-          </div>
+              </ul>
+            </div>
         `;
+        
+        // Add chat container if high probability failure
+        if (highProbabilityFailure) {
+          resultsHTML += `
+            <div class="chat-container" id="chatContainer">
+              <h2 class="chat-title">AI Assistant</h2>
+              <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                  Hello! I'm your AI assistant. I can help analyze your 3D print issues. What would you like to know about the detected failure?
+                </div>
+              </div>
+              <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Ask about the failure...">
+                <button class="send-button" id="sendButton">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        
+        resultsHTML += `</div>`;
         
         resultsContainer.innerHTML = resultsHTML;
         
@@ -1301,7 +1434,6 @@
           const width = prediction.width / imageWidth * 100;
           const height = prediction.height / imageHeight * 100;
           
-          // Style the box
           box.className = 'bounding-box';
           box.style.left = `${x}%`;
           box.style.top = `${y}%`;
@@ -1312,10 +1444,118 @@
           const label = document.createElement('div');
           label.className = 'bounding-box-label';
           label.textContent = `${prediction.class} (${Math.round(prediction.confidence * 100)}%)`;
-          
           box.appendChild(label);
+          
           imageWrapper.appendChild(box);
         });
+
+        // Add chat event listeners if chat window exists
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        if (chatInput && sendButton) {
+          // Add click event for send button
+          sendButton.addEventListener('click', sendChatMessage);
+          
+          // Add enter key event for input field
+          chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              sendChatMessage();
+            }
+          });
+        }
+      }
+      
+      // Chat message sending function
+      async function sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+        
+        if (!chatInput || !chatMessages) return;
+        
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        // Add user message
+        chatMessages.innerHTML += `
+          <div class="message user-message">
+            ${escapeHtml(message)}
+          </div>
+        `;
+        
+        // Clear input
+        chatInput.value = '';
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        try {
+          // Show loading indicator
+          chatMessages.innerHTML += `
+            <div class="message ai-message" id="ai-loading">
+              Thinking...
+            </div>
+          `;
+          
+          // Send to backend
+          const response = await fetch('http://localhost:5000/api/gemini/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to get response from AI');
+          }
+          
+          const data = await response.json();
+          
+          // Remove loading indicator
+          const loadingMessage = document.getElementById('ai-loading');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          // Add AI response
+          chatMessages.innerHTML += `
+            <div class="message ai-message">
+              ${escapeHtml(data.response)}
+            </div>
+          `;
+          
+          // Scroll to bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (error) {
+          console.error('Error sending message:', error);
+          
+          // Remove loading indicator
+          const loadingMessage = document.getElementById('ai-loading');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          // Show error message
+          chatMessages.innerHTML += `
+            <div class="message ai-message error">
+              Sorry, I couldn't process your message. Please try again.
+            </div>
+          `;
+          
+          // Scroll to bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+      
+      // Helper function to escape HTML
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
       }
     });
   </script>
