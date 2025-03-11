@@ -172,8 +172,8 @@
       clip-path: polygon(
         0% 0%, 
         100% 0%, 
-        100% 85%, 
-        95% 100%, 
+        100% calc(100% - 30px), 
+        calc(100% - 30px) 100%, 
         0% 100%
       );
     }
@@ -463,13 +463,18 @@
       border: 1px solid var(--glass-border);
       padding: 20px;
       margin-left: 20px;
-      flex: 1;
+      flex: 0 0 350px;
       display: flex;
       flex-direction: column;
-      height: auto;
-      min-height: 400px;
       position: relative;
       overflow: hidden;
+      clip-path: polygon(
+        0% 0%, 
+        100% 0%, 
+        100% calc(100% - 30px), 
+        calc(100% - 30px) 100%, 
+        0% 100%
+      );
     }
     
     .chat-container::before {
@@ -584,14 +589,41 @@
       flex: 1;
     }
     
+    /* New page layout structure */
+    .main-content-wrapper {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .left-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .right-column {
+      flex: 0 0 350px;
+      position: sticky;
+      top: 40px;
+      height: calc(100vh - 80px);
+    }
+    
+    .right-column .chat-container {
+      margin-left: 0;
+      height: 100%;
+    }
+    
     @media (max-width: 992px) {
-      .results-flex-container {
+      .main-content-wrapper {
         flex-direction: column;
       }
       
-      .chat-container {
-        margin-left: 0;
-        margin-top: 20px;
+      .right-column {
+        flex: 1;
+        position: static;
+        height: auto;
+        min-height: 500px;
       }
     }
 
@@ -708,6 +740,50 @@
         padding: 14px 20px;
       }
     }
+
+    .chat-image-upload-container {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--glass-border);
+    }
+    
+    .upload-button-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .upload-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+    
+    .upload-button:hover {
+      background: var(--hover-bg);
+    }
+    
+    .loading-text {
+      margin: 10px 0;
+      font-style: italic;
+      text-align: center;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+    
+    .image-preview {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 10px 0;
+      border: 1px solid var(--glass-border);
+    }
   </style>
 </head>
 <body>
@@ -727,64 +803,98 @@
     </header>
     
     <main>
-      <div class="prism-card">
-        <h2 class="card-title">Upload Image</h2>
-        
-        <div class="input-method-toggle">
-          <div class="input-method-btn active" id="uploadBtn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Upload File
-          </div>
-          <div class="input-method-btn" id="webcamBtn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            Use Webcam
-          </div>
-        </div>
-        
-        <div class="upload-area" id="uploadArea">
-          <div class="upload-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          </div>
-          <p class="upload-text">Drop image here or click to browse</p>
-          <input type="file" id="fileInput" class="file-input" accept="image/*">
-          <div id="fileInfo" style="display: none;">
-            <p class="selected-file"><span id="fileName">No file selected</span></p>
-          </div>
-        </div>
-        
-        <div class="webcam-container" id="webcamContainer">
-          <div class="webcam-inner">
-            <video id="webcamFeed" class="webcam-feed" autoplay playsinline></video>
-            <div class="webcam-permissions" id="webcamPermissions">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <p>Please allow camera access</p>
-              <button id="enableCameraBtn" class="capture-btn">Enable Camera</button>
+      <div class="main-content-wrapper">
+        <div class="left-column">
+          <div class="prism-card">
+            <h2 class="card-title">Upload Image</h2>
+            
+            <div class="input-method-toggle">
+              <div class="input-method-btn active" id="uploadBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload File
+              </div>
+              <div class="input-method-btn" id="webcamBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Use Webcam
+              </div>
             </div>
-            <canvas id="webcamCanvas" style="display: none;"></canvas>
+            
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="upload-text">Drop image here or click to browse</p>
+              <input type="file" id="fileInput" class="file-input" accept="image/*">
+              <div id="fileInfo" style="display: none;">
+                <p class="selected-file"><span id="fileName">No file selected</span></p>
+              </div>
+            </div>
+            
+            <div class="webcam-container" id="webcamContainer">
+              <div class="webcam-inner">
+                <video id="webcamFeed" class="webcam-feed" autoplay playsinline></video>
+                <div class="webcam-permissions" id="webcamPermissions">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <p>Please allow camera access</p>
+                  <button id="enableCameraBtn" class="capture-btn">Enable Camera</button>
+                </div>
+                <canvas id="webcamCanvas" style="display: none;"></canvas>
+              </div>
+              <div style="text-align: center; margin-top: 10px;">
+                <button id="captureBtn" class="capture-btn">Capture Image</button>
+              </div>
+            </div>
+            
+            <button id="detectButton" class="btn btn-lg">Analyze Print</button>
           </div>
-          <div style="text-align: center; margin-top: 10px;">
-            <button id="captureBtn" class="capture-btn">Capture Image</button>
-          </div>
+          
+          <div id="resultsContainer"></div>
         </div>
         
-        <button id="detectButton" class="btn btn-lg">Analyze Print</button>
+        <div class="right-column" id="chatColumn" style="display: none;">
+          <div class="chat-container" id="chatSidebar">
+            <h2 class="chat-title">AI Assistant</h2>
+            <div class="chat-messages" id="chatSidebarMessages">
+              <div class="message ai-message">
+                Hello! I'm your AI assistant. I can help analyze your 3D print issues. What would you like to know about the detected failure?
+              </div>
+            </div>
+            <div class="chat-input-container">
+              <input type="text" class="chat-input" id="chatSidebarInput" placeholder="Ask about the failure...">
+              <button id="sendSidebarButton" class="send-button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
+            
+            <!-- Add image upload for failure analysis -->
+            <div class="chat-image-upload-container">
+              <form id="chatImageUploadForm" enctype="multipart/form-data">
+                <div class="upload-button-wrapper">
+                  <label for="chatImageUpload" class="upload-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    Upload print image for analysis
+                  </label>
+                  <input type="file" id="chatImageUpload" accept="image/*" style="display: none;">
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <div id="resultsContainer"></div>
     </main>
   </div>
 
@@ -1348,6 +1458,8 @@
               </div>
             </div>
           `;
+          // Hide the chat column when no failures
+          document.getElementById('chatColumn').style.display = 'none';
           return;
         }
         
@@ -1360,17 +1472,16 @@
         
         // Start building results HTML
         let resultsHTML = `
-          <div class="results-flex-container">
-            <div class="prism-card results-card">
-              <div class="results-header">
-                <h2 class="card-title">Detection Results</h2>
-                <div class="detected-count">${data.predictions.length} issues found</div>
-              </div>
-              <div class="image-container" id="imageWrapper">
-                <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
-              </div>
-              <h3 class="results-subtitle">Detected Issues:</h3>
-              <ul class="prediction-list">
+          <div class="prism-card">
+            <div class="results-header">
+              <h2 class="card-title">Detection Results</h2>
+              <div class="detected-count">${data.predictions.length} issues found</div>
+            </div>
+            <div class="image-container" id="imageWrapper">
+              <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
+            </div>
+            <h3 class="results-subtitle">Detected Issues:</h3>
+            <ul class="prediction-list">
         `;
         
         data.predictions.forEach((prediction, index) => {
@@ -1391,36 +1502,19 @@
         });
         
         resultsHTML += `
-              </ul>
-            </div>
+            </ul>
+          </div>
         `;
         
-        // Add chat container if high probability failure
-        if (highProbabilityFailure) {
-          resultsHTML += `
-            <div class="chat-container" id="chatContainer">
-              <h2 class="chat-title">AI Assistant</h2>
-              <div class="chat-messages" id="chatMessages">
-                <div class="message ai-message">
-                  Hello! I'm your AI assistant. I can help analyze your 3D print issues. What would you like to know about the detected failure?
-                </div>
-              </div>
-              <div class="chat-input-container">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Ask about the failure...">
-                <button class="send-button" id="sendButton">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          `;
-        }
-        
-        resultsHTML += `</div>`;
-        
         resultsContainer.innerHTML = resultsHTML;
+        
+        // Show/hide the chat column based on probability threshold
+        const chatColumn = document.getElementById('chatColumn');
+        if (highProbabilityFailure) {
+          chatColumn.style.display = 'block';
+        } else {
+          chatColumn.style.display = 'none';
+        }
         
         // Add bounding boxes
         const imageWrapper = document.getElementById('imageWrapper');
@@ -1448,28 +1542,17 @@
           
           imageWrapper.appendChild(box);
         });
-
-        // Add chat event listeners if chat window exists
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        
-        if (chatInput && sendButton) {
-          // Add click event for send button
-          sendButton.addEventListener('click', sendChatMessage);
-          
-          // Add enter key event for input field
-          chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-              sendChatMessage();
-            }
-          });
-        }
       }
       
       // Chat message sending function
       async function sendChatMessage() {
-        const chatInput = document.getElementById('chatInput');
-        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.activeElement.id === 'chatSidebarInput' 
+          ? document.getElementById('chatSidebarInput') 
+          : document.getElementById('chatInput');
+        
+        const chatMessages = document.activeElement.id === 'chatSidebarInput'
+          ? document.getElementById('chatSidebarMessages')
+          : document.getElementById('chatMessages');
         
         if (!chatInput || !chatMessages) return;
         
@@ -1547,6 +1630,108 @@
           chatMessages.scrollTop = chatMessages.scrollHeight;
         }
       }
+      
+      // Function to handle 3D print image analysis
+      async function analyzeImage(file) {
+        const chatMessages = document.activeElement.id === 'chatSidebarInput'
+          ? document.getElementById('chatSidebarMessages')
+          : document.getElementById('chatMessages');
+          
+        if (!chatMessages) return;
+        
+        // Show the image in chat
+        const imagePreview = URL.createObjectURL(file);
+        chatMessages.innerHTML += `
+          <div class="message user-message">
+            <img src="${imagePreview}" alt="3D Print" class="image-preview">
+            <div>Analyzing this 3D print...</div>
+          </div>
+        `;
+        
+        // Show loading indicator
+        chatMessages.innerHTML += `
+          <div class="message ai-message" id="ai-loading">
+            <div class="loading-text">Analyzing your 3D print failure...</div>
+          </div>
+        `;
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        try {
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          // Send to backend
+          const response = await fetch('http://localhost:5000/api/gemini/analyze-print', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to analyze image');
+          }
+          
+          const data = await response.json();
+          
+          // Remove loading indicator
+          const loadingMessage = document.getElementById('ai-loading');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          // Add AI response
+          chatMessages.innerHTML += `
+            <div class="message ai-message">
+              ${escapeHtml(data.response)}
+            </div>
+          `;
+          
+          // Scroll to bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (error) {
+          console.error('Error analyzing image:', error);
+          
+          // Remove loading indicator
+          const loadingMessage = document.getElementById('ai-loading');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          // Show error message
+          chatMessages.innerHTML += `
+            <div class="message ai-message error">
+              Sorry, I couldn't analyze the image. Please try again.
+            </div>
+          `;
+          
+          // Scroll to bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+      
+      // Add event listeners for chat functionality
+      document.addEventListener('click', function(e) {
+        if (e.target.matches('#sendButton') || e.target.closest('#sendButton') ||
+            e.target.matches('#sendSidebarButton') || e.target.closest('#sendSidebarButton')) {
+          sendChatMessage();
+        }
+      });
+      
+      document.addEventListener('keypress', function(e) {
+        if ((e.target.matches('#chatInput') || e.target.matches('#chatSidebarInput')) && e.key === 'Enter') {
+          sendChatMessage();
+        }
+      });
+      
+      // Add event listener for image upload
+      document.getElementById('chatImageUpload').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          analyzeImage(this.files[0]);
+          // Reset file input so the same file can be selected again
+          this.value = '';
+        }
+      });
       
       // Helper function to escape HTML
       function escapeHtml(unsafe) {

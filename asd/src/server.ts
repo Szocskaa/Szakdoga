@@ -21,6 +21,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes
 app.use('/api/roboflow', roboflowRoutes);
 app.use('/api/gemini', geminiRoutes);

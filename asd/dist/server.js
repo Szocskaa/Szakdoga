@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const roboflow_1 = require("./routes/roboflow");
 const gemini_1 = require("./routes/gemini");
 // Load environment variables
@@ -20,6 +21,13 @@ app.use(express_1.default.json({ limit: '50mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static files from the public directory
 app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
+// Ensure uploads directory exists
+const uploadsDir = path_1.default.join(__dirname, '../uploads');
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
+// Serve uploaded files
+app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/roboflow', roboflow_1.roboflowRoutes);
 app.use('/api/gemini', gemini_1.geminiRoutes);
