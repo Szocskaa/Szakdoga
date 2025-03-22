@@ -120,11 +120,19 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Function to handle 3D print image analysis
   async function analyzeImage(file) {
+    console.log('analyzeImage function called with file:', file);
+    
     // Only use chatSidebarMessages as that's what exists in the HTML
     const chatMessages = document.getElementById('chatSidebarMessages');
       
     if (!chatMessages) {
       console.error('Chat messages element not found');
+      return;
+    }
+    
+    // Check if there's already an analysis in progress
+    if (document.getElementById('ai-loading')) {
+      console.log('Analysis already in progress, not starting a new one');
       return;
     }
     
@@ -151,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const formData = new FormData();
       formData.append('image', file);
       
-      console.log('Sending 3D print image for analysis');
+      console.log('Sending 3D print image for analysis to Gemini');
       
       // Send to backend
       const response = await fetch('/api/gemini/analyze-print', {
@@ -159,16 +167,16 @@ document.addEventListener('DOMContentLoaded', function() {
         body: formData,
       });
       
-      console.log('Analyze print response status:', response.status);
+      console.log('Gemini analyze print response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error analyzing image:', errorText);
+        console.error('Error analyzing image with Gemini:', errorText);
         throw new Error(`Failed to analyze image: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Analysis response data:', data);
+      console.log('Gemini analysis response data:', data);
       
       // Remove loading indicator
       const loadingMessage = document.getElementById('ai-loading');
@@ -186,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Scroll to bottom
       chatMessages.scrollTop = chatMessages.scrollHeight;
     } catch (error) {
-      console.error('Error analyzing image:', error);
+      console.error('Error analyzing image with Gemini:', error);
       
       // Remove loading indicator
       const loadingMessage = document.getElementById('ai-loading');

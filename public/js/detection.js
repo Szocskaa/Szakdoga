@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="detected-count">${data.predictions.length} issues found</div>
         </div>
         <div class="image-container" id="imageWrapper">
-          <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;">
+          <img src="${capturedImageUrl || URL.createObjectURL(fileInput.files[0])}" alt="Analyzed image" style="width: 100%;" id="detectedImage">
         </div>
         <h3 class="results-subtitle">Detected Issues:</h3>
         <ul class="prediction-list">
@@ -146,6 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatColumn = document.getElementById('chatColumn');
     if (highProbabilityFailure) {
       chatColumn.style.display = 'block';
+      
+      // Send the image to Gemini AI for further analysis
+      setTimeout(() => {
+        sendImageToGemini(capturedImageUrl, fileInput.files[0]);
+      }, 500);
     } else {
       chatColumn.style.display = 'none';
     }
@@ -176,5 +181,35 @@ document.addEventListener('DOMContentLoaded', function() {
       
       imageWrapper.appendChild(box);
     });
+  }
+  
+  // Function to send the detected image to Gemini AI
+  async function sendImageToGemini(capturedImageUrl, uploadedFile) {
+    console.log('Sending detected image to Gemini AI for analysis');
+    
+    try {
+      // Get the image either from capturedImageUrl (webcam) or uploadedFile
+      let imageFile;
+      
+      if (capturedImageUrl) {
+        // Convert base64/dataURL to Blob
+        const response = await fetch(capturedImageUrl);
+        imageFile = await response.blob();
+      } else if (uploadedFile) {
+        imageFile = uploadedFile;
+      } else {
+        console.error('No image available to send to Gemini');
+        return;
+      }
+      
+      // Use the analyzeImage function from chat.js
+      if (window.analyzeImage) {
+        window.analyzeImage(imageFile);
+      } else {
+        console.error('analyzeImage function not available');
+      }
+    } catch (error) {
+      console.error('Error sending image to Gemini:', error);
+    }
   }
 }); 
