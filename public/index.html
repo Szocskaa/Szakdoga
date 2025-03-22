@@ -1027,6 +1027,9 @@
 
       onResize() {
         this._setCamera();
+        // Update renderParam dimensions to match current window size
+        this.renderParam.width = window.innerWidth;
+        this.renderParam.height = window.innerHeight;
       }
 
       onRaf() {
@@ -1071,18 +1074,23 @@
 
       init() {
         this._setMesh();
+        // Update dimensions after initialization
+        this._updateDimensions();
       }
       
       _setupMouseTracking() {
         window.addEventListener('mousemove', (e) => {
-          // Normalize mouse coordinates
-          this.mouseX = e.clientX;
-          this.mouseY = e.clientY;
+          // Get canvas bounding rectangle
+          const rect = this.canvas.getBoundingClientRect();
           
-          // Update uniform
+          // Calculate mouse position relative to canvas
+          this.mouseX = e.clientX - rect.left;
+          this.mouseY = e.clientY - rect.top;
+          
+          // Update uniform with scaled values to match WebGL coordinates
           if (this.uniforms.mouse) {
-            this.uniforms.mouse.value[0] = this.mouseX;
-            this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+            this.uniforms.mouse.value[0] = this.mouseX * (this.canvas.width / rect.width);
+            this.uniforms.mouse.value[1] = (rect.height - this.mouseY) * (this.canvas.height / rect.height); // Invert Y for WebGL
           }
         });
         
@@ -1092,14 +1100,17 @@
             // Prevent scrolling
             e.preventDefault();
             
-            // Normalize touch coordinates
-            this.mouseX = e.touches[0].clientX;
-            this.mouseY = e.touches[0].clientY;
+            // Get canvas bounding rectangle
+            const rect = this.canvas.getBoundingClientRect();
             
-            // Update uniform
+            // Calculate touch position relative to canvas
+            this.mouseX = e.touches[0].clientX - rect.left;
+            this.mouseY = e.touches[0].clientY - rect.top;
+            
+            // Update uniform with scaled values to match WebGL coordinates
             if (this.uniforms.mouse) {
-              this.uniforms.mouse.value[0] = this.mouseX;
-              this.uniforms.mouse.value[1] = this.canvasHeight - this.mouseY; // Invert Y for WebGL coordinates
+              this.uniforms.mouse.value[0] = this.mouseX * (this.canvas.width / rect.width);
+              this.uniforms.mouse.value[1] = (rect.height - this.mouseY) * (this.canvas.height / rect.height); // Invert Y for WebGL
             }
           }
         }, { passive: false });
@@ -1139,8 +1150,14 @@
         }
       }
       
+      onResize() {
+        // Update dimensions when window is resized
+        this._updateDimensions();
+      }
+      
       _updateDimensions() {
         if (this.canvas) {
+          const rect = this.canvas.getBoundingClientRect();
           this.canvasWidth = this.canvas.width;
           this.canvasHeight = this.canvas.height;
           
@@ -1206,6 +1223,7 @@
 
       window.addEventListener("resize", () => {
         stage.onResize();
+        mesh.onResize();
       });
 
       const _raf = () => {

@@ -8,8 +8,8 @@ const router = express.Router();
 
 // Environment variables
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || 'OW2ci9cwEzLofsYscZgf';
-const PROJECT_ID = process.env.PROJECT_ID || '3dprinting';
-const MODEL_VERSION = process.env.MODEL_VERSION || '6';
+const PROJECT_ID = process.env.PROJECT_ID || '3dprinting-iscuw';
+const MODEL_VERSION = process.env.MODEL_VERSION || '1';
 
 /**
  * @route POST /api/roboflow/detect
