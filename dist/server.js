@@ -3,15 +3,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Load environment variables - MUST be first
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+// Other imports
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const roboflow_1 = require("./routes/roboflow");
 const gemini_1 = require("./routes/gemini");
-// Load environment variables
-dotenv_1.default.config();
 // Initialize Express app
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;

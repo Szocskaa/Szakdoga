@@ -7,12 +7,23 @@ exports.roboflowRoutes = void 0;
 const express_1 = __importDefault(require("express"));
 const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
+const dotenv_1 = __importDefault(require("dotenv"));
 const uploadConfig_1 = require("../uploadConfig");
+// Load environment variables
+dotenv_1.default.config();
 const router = express_1.default.Router();
 // Environment variables
-const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || 'OW2ci9cwEzLofsYscZgf';
-const PROJECT_ID = process.env.PROJECT_ID || '3dprinting-iscuw';
-const MODEL_VERSION = process.env.MODEL_VERSION || '1';
+const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY;
+const PROJECT_ID = process.env.PROJECT_ID;
+const MODEL_VERSION = process.env.MODEL_VERSION;
+// Check if environment variables are set
+if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
+    console.warn('Warning: One or more Roboflow environment variables are not set (ROBOFLOW_API_KEY, PROJECT_ID, MODEL_VERSION)');
+    console.log('Current environment values:');
+    console.log(`ROBOFLOW_API_KEY: ${ROBOFLOW_API_KEY ? 'Set' : 'Not set'}`);
+    console.log(`PROJECT_ID: ${PROJECT_ID ? PROJECT_ID : 'Not set'}`);
+    console.log(`MODEL_VERSION: ${MODEL_VERSION ? MODEL_VERSION : 'Not set'}`);
+}
 /**
  * @route POST /api/roboflow/detect
  * @desc Detect 3D printing failures in an uploaded image
@@ -23,6 +34,10 @@ router.post('/detect', uploadConfig_1.upload.single('image'), (req, res, next) =
         try {
             if (!req.file) {
                 return res.status(400).json({ error: 'No image file provided' });
+            }
+            // Check if required environment variables are set
+            if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
+                return res.status(500).json({ error: 'Server configuration error: API credentials not properly configured' });
             }
             const filePath = req.file.path;
             // Read the image file as base64

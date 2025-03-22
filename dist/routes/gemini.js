@@ -16,6 +16,7 @@ const router = express_1.default.Router();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 if (!GEMINI_API_KEY) {
     console.warn('Warning: GEMINI_API_KEY is not set in the environment variables');
+    console.log('Please check that your .env file contains the GEMINI_API_KEY variable');
 }
 // Initialize Gemini AI
 const genAI = new generative_ai_1.GoogleGenerativeAI(GEMINI_API_KEY);
