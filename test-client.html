@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+    .user-message { background-color: #e1f5fe; text-align: right; }
+    .ai-message { background-color: #f5f5f5; }
+    .error { background-color: #ffebee; color: #c62828; }
+    input { width: 70%; padding: 10px; }
+    button { padding: 10px; background-color: #2196f3; color: white; border: none; cursor: pointer; }
+    #testResults { margin-top: 20px; border: 1px solid #ddd; padding: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Gemini API Test</h1>
+  
+  <div id="chatMessages"></div>
+  
+  <div style="margin-top: 20px;">
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button id="sendButton">Send</button>
+  </div>
+  
+  <div>
+    <h3>Test Results</h3>
+    <div id="testResults"></div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const messageInput = document.getElementById('messageInput');
+      const sendButton = document.getElementById('sendButton');
+      const chatMessages = document.getElementById('chatMessages');
+      const testResults = document.getElementById('testResults');
+      
+      // Run initial API test
+      testAPI();
+      
+      // Set up event listeners
+      sendButton.addEventListener('click', sendMessage);
+      messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+      
+      // Function to test the API
+      async function testAPI() {
+        testResults.innerHTML = 'Testing API endpoints...\n';
+        
+        try {
+          // Test health endpoint
+          const healthResponse = await fetch('http://localhost:5000/health');
+          const healthData = await healthResponse.json();
+          testResults.innerHTML += `Health endpoint: ${healthResponse.status === 200 ? 'OK' : 'FAILED'}\n`;
+          testResults.innerHTML += `Response: ${JSON.stringify(healthData)}\n\n`;
+          
+          // Test simple Gemini chat message
+          testResults.innerHTML += 'Testing Gemini chat endpoint with simple message...\n';
+          const chatResponse = await fetch('http://localhost:5000/api/gemini/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: 'Hello' }),
+          });
+          
+          if (chatResponse.ok) {
+            const chatData = await chatResponse.json();
+            testResults.innerHTML += `Chat endpoint: OK\n`;
+            testResults.innerHTML += `Response: ${JSON.stringify(chatData)}\n`;
+          } else {
+            testResults.innerHTML += `Chat endpoint: FAILED (${chatResponse.status})\n`;
+            const errorText = await chatResponse.text();
+            testResults.innerHTML += `Error: ${errorText}\n`;
+          }
+        } catch (error) {
+          testResults.innerHTML += `Error testing API: ${error.message}\n`;
+          console.error('API test error:', error);
+        }
+      }
+      
+      // Function to send a chat message
+      async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+        
+        // Add user message to chat
+        chatMessages.innerHTML += `
+          <div class="message user-message">
+            ${escapeHtml(message)}
+          </div>
+        `;
+        
+        // Clear input
+        messageInput.value = '';
+        
+        try {
+          chatMessages.innerHTML += `
+            <div class="message ai-message" id="loading-message">
+              Loading...
+            </div>
+          `;
+          
+          // Log request details
+          console.log('Sending request to:', 'http://localhost:5000/api/gemini/chat');
+          console.log('Request body:', JSON.stringify({ message }));
+          
+          // Send to backend
+          const response = await fetch('http://localhost:5000/api/gemini/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+          });
+          
+          // Log response status
+          console.log('Response status:', response.status);
+          
+          const loadingMessage = document.getElementById('loading-message');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            
+            chatMessages.innerHTML += `
+              <div class="message error">
+                Error: ${response.status} - ${escapeHtml(errorText)}
+              </div>
+            `;
+            return;
+          }
+          
+          const data = await response.json();
+          console.log('Response data:', data);
+          
+          // Add AI response to chat
+          chatMessages.innerHTML += `
+            <div class="message ai-message">
+              ${escapeHtml(data.response || 'No response')}
+            </div>
+          `;
+        } catch (error) {
+          console.error('Error sending message:', error);
+          
+          // Remove loading message
+          const loadingMessage = document.getElementById('loading-message');
+          if (loadingMessage) {
+            loadingMessage.remove();
+          }
+          
+          // Show error message
+          chatMessages.innerHTML += `
+            <div class="message error">
+              Error: ${escapeHtml(error.message)}
+            </div>
+          `;
+        }
+      }
+      
+      // Helper function to escape HTML
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    });
+  </script>
+</body>
+</html> 

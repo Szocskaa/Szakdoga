@@ -15,23 +15,34 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Chat message sending function
   async function sendChatMessage() {
-    const chatInput = document.activeElement.id === 'chatSidebarInput' 
-      ? document.getElementById('chatSidebarInput') 
-      : document.getElementById('chatInput');
+    console.log('sendChatMessage function called');
     
-    const chatMessages = document.activeElement.id === 'chatSidebarInput'
-      ? document.getElementById('chatSidebarMessages')
-      : document.getElementById('chatMessages');
+    // Get the chat input element - only use chatSidebarInput as that's what exists in the HTML
+    const chatInput = document.getElementById('chatSidebarInput');
     
-    if (!chatInput || !chatMessages) return;
+    // Get the chat messages container - only use chatSidebarMessages as that's what exists in the HTML
+    const chatMessages = document.getElementById('chatSidebarMessages');
+    
+    console.log('chatInput:', chatInput);
+    console.log('chatMessages:', chatMessages);
+    
+    if (!chatInput || !chatMessages) {
+      console.error('Chat input or messages element not found');
+      return;
+    }
     
     const message = chatInput.value.trim();
-    if (!message) return;
+    console.log('Message to send:', message);
+    
+    if (!message) {
+      console.log('Empty message, not sending');
+      return;
+    }
     
     // Add user message
     chatMessages.innerHTML += `
       <div class="message user-message">
-        ${window.escapeHtml(message)}
+        ${window.escapeHtml ? window.escapeHtml(message) : message}
       </div>
     `;
     
@@ -49,8 +60,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
       
+      console.log('Sending API request to Gemini');
+      
       // Send to backend
-      const response = await fetch('http://localhost:5000/api/gemini/chat', {
+      const response = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,11 +71,16 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify({ message }),
       });
       
+      console.log('API response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to get response from AI');
+        const errorText = await response.text();
+        console.error('Error response from API:', errorText);
+        throw new Error(`Failed to get response from AI: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('API response data:', data);
       
       // Remove loading indicator
       const loadingMessage = document.getElementById('ai-loading');
@@ -73,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Add AI response
       chatMessages.innerHTML += `
         <div class="message ai-message">
-          ${window.escapeHtml(data.response)}
+          ${window.escapeHtml ? window.escapeHtml(data.response) : data.response}
         </div>
       `;
       
@@ -91,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show error message
       chatMessages.innerHTML += `
         <div class="message ai-message error">
-          Sorry, I couldn't process your message. Please try again.
+          Sorry, I couldn't process your message. Please try again. Error: ${error.message}
         </div>
       `;
       
@@ -102,11 +120,13 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Function to handle 3D print image analysis
   async function analyzeImage(file) {
-    const chatMessages = document.activeElement.id === 'chatSidebarInput'
-      ? document.getElementById('chatSidebarMessages')
-      : document.getElementById('chatMessages');
+    // Only use chatSidebarMessages as that's what exists in the HTML
+    const chatMessages = document.getElementById('chatSidebarMessages');
       
-    if (!chatMessages) return;
+    if (!chatMessages) {
+      console.error('Chat messages element not found');
+      return;
+    }
     
     // Show the image in chat
     const imagePreview = URL.createObjectURL(file);
@@ -131,17 +151,24 @@ document.addEventListener('DOMContentLoaded', function() {
       const formData = new FormData();
       formData.append('image', file);
       
+      console.log('Sending 3D print image for analysis');
+      
       // Send to backend
-      const response = await fetch('http://localhost:5000/api/gemini/analyze-print', {
+      const response = await fetch('/api/gemini/analyze-print', {
         method: 'POST',
         body: formData,
       });
       
+      console.log('Analyze print response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to analyze image');
+        const errorText = await response.text();
+        console.error('Error analyzing image:', errorText);
+        throw new Error(`Failed to analyze image: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('Analysis response data:', data);
       
       // Remove loading indicator
       const loadingMessage = document.getElementById('ai-loading');
@@ -152,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Add AI response
       chatMessages.innerHTML += `
         <div class="message ai-message">
-          ${window.escapeHtml(data.response)}
+          ${window.escapeHtml ? window.escapeHtml(data.response) : data.response}
         </div>
       `;
       
@@ -170,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show error message
       chatMessages.innerHTML += `
         <div class="message ai-message error">
-          Sorry, I couldn't analyze the image. Please try again.
+          Sorry, I couldn't analyze the image. Please try again. Error: ${error.message}
         </div>
       `;
       
@@ -181,4 +208,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Export the analyzeImage function to the global scope
   window.analyzeImage = analyzeImage;
+  
+  // Ensure escapeHtml function exists
+  if (!window.escapeHtml) {
+    window.escapeHtml = function(unsafe) {
+      if (!unsafe) return '';
+      return unsafe
+        .toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+  }
 }); 
