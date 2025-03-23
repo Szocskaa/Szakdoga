@@ -120,6 +120,17 @@ router.post('/analyze-print', upload.single('image'), (req, res, next) => {
             }
             // Get the uploaded file path
             const imagePath = req.file.path;
+            // Get Roboflow prediction data if available
+            let predictionData = null;
+            if (req.body.predictions) {
+                try {
+                    predictionData = JSON.parse(req.body.predictions);
+                    console.log('Received prediction data from Roboflow:', predictionData);
+                }
+                catch (e) {
+                    console.error('Error parsing prediction data:', e);
+                }
+            }
             // Get the Gemini Pro Vision model
             const model = genAI.getGenerativeModel({
                 model: 'gemini-1.5-pro',
@@ -133,27 +144,81 @@ router.post('/analyze-print', upload.single('image'), (req, res, next) => {
             };
             // Convert image to format Gemini can use
             const imagePart = await fileToGenerativePart(imagePath);
-            // The prompt that guides Gemini to analyze the 3D print
-            const prompt = `
-      Analyze this 3D print image and determine if it shows a failed print. 
+            // Create a prompt that includes Roboflow prediction data if available
+            let prompt = `
+      Analyze this 3D print image and determine if it shows a failed print.
 
-      If it IS a failed print:
-      1. Confirm that the print has indeed failed
-      2. Describe the specific type of failure visible in the image (e.g., stringing, layer shifting, warping, etc.)
-      3. Analyze the potential causes of this failure
-      4. Suggest specific actions the user could take to fix this issue
-      5. Rate the severity of the failure on a scale of 1-10
+      IMPORTANT: Return your analysis EXACTLY in the following format to ensure proper parsing:
 
-      If it is NOT a failed print or the quality is acceptable:
-      1. Confirm that the print appears successful
-      2. Describe any minor issues that might be present, if any
-      3. Suggest any optional improvements for future prints
+      Confirmation: [State CLEARLY if the print has failed OR if it's acceptable]
 
-      Present your analysis in a clear, structured format with headings and bullet points.
+      Issue Type: [Describe the specific type of failure or quality assessment]
+
+      Potential Causes:
+      - [Cause 1]
+      - [Cause 2]
+      - [Add more causes as needed]
+
+      Recommended Fixes:
+      - [Fix 1]
+      - [Fix 2]
+      - [Add more fixes as needed]
+
+      Severity: [Rate on a scale of 1-10, with 10 being the most severe]
+
+      Additional Notes: [Any other observations that don't fit above]
       `;
+            // Add prediction information if available
+            if (predictionData && predictionData.predictions && predictionData.predictions.length > 0) {
+                prompt += `
+        
+      IMPORTANT: The image has been analyzed by a computer vision model (Roboflow) which detected the following issues:
+      `;
+                predictionData.predictions.forEach((prediction, index) => {
+                    prompt += `
+      ${index + 1}. ${prediction.class} (confidence: ${Math.round(prediction.confidence * 100)}%)`;
+                    if (prediction.position) {
+                        prompt += ` - Located at position: left=${prediction.position.left}%, top=${prediction.position.top}%, width=${prediction.position.width}%, height=${prediction.position.height}%`;
+                    }
+                });
+                prompt += `
+        
+      Please take these detected issues into account in your analysis. Use them as guidance, but feel free to identify other issues you can see in the image.
+      `;
+            }
+            prompt += `
+
+      GUIDELINES:
+
+      If the print has FAILED:
+      1. In the "Confirmation" section: Write ONLY "The print has failed."
+      2. In the "Issue Type" section: Be SPECIFIC about the type of failure (e.g., stringing, layer shifting, warping)
+      3. List at least 3 potential causes, each on a new line with a dash (-)
+      4. List at least 3 recommended fixes, each on a new line with a dash (-)
+      5. Rate severity from 7-10 if it's a severe failure
+
+      If the print is ACCEPTABLE:
+      1. In the "Confirmation" section: Write ONLY "The print is acceptable."
+      2. In the "Issue Type" section: Note any minor issues if present, or write "Good quality print"
+      3. List any potential improvements in the causes section
+      4. List optional enhancements in the fixes section
+      5. Rate severity from 1-3 for minor issues
+
+      IMPORTANT FORMATTING RULES:
+      - Keep the exact headers as shown: "Confirmation:", "Issue Type:", etc.
+      - Use dashes (-) at the start of each bullet point
+      - Keep each bullet point on a separate line
+      - Be concise but thorough
+      - For the severity, just write the number (1-10)
+      - Do not add any other sections beyond what is specified
+
+      Your response will be parsed by a computer program, so strict adherence to this format is essential.
+      `;
+            console.log('Sending prompt to Gemini:', prompt);
             // Send the image to Gemini with the prompt
             const result = await model.generateContent([prompt, imagePart]);
             const response = result.response.text();
+            console.log('Received response from Gemini');
             // Return the analysis
             res.status(200).json({
                 response,

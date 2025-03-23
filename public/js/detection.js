@@ -202,9 +202,52 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Use the analyzeImage function from chat.js
+      // Collect prediction data to send to Gemini
+      const predictionData = {
+        predictions: []
+      };
+      
+      // Get all prediction items from the DOM
+      const predictionItems = document.querySelectorAll('.prediction-item');
+      predictionItems.forEach(item => {
+        const classElement = item.querySelector('.prediction-class span');
+        const confidenceElement = item.querySelector('.prediction-confidence');
+        
+        if (classElement && confidenceElement) {
+          const detectedClass = classElement.textContent;
+          // Extract just the number from "85%"
+          const confidence = parseInt(confidenceElement.textContent) / 100;
+          
+          predictionData.predictions.push({
+            class: detectedClass,
+            confidence: confidence
+          });
+        }
+      });
+      
+      // Get all bounding boxes from the DOM
+      const boundingBoxes = document.querySelectorAll('.bounding-box');
+      boundingBoxes.forEach((box, index) => {
+        if (index < predictionData.predictions.length) {
+          const left = parseFloat(box.style.left);
+          const top = parseFloat(box.style.top);
+          const width = parseFloat(box.style.width);
+          const height = parseFloat(box.style.height);
+          
+          predictionData.predictions[index].position = {
+            left: left,
+            top: top,
+            width: width,
+            height: height
+          };
+        }
+      });
+      
+      console.log('Sending predictions to Gemini:', predictionData);
+      
+      // Use the analyzeImage function from chat.js with additional prediction data
       if (window.analyzeImage) {
-        window.analyzeImage(imageFile);
+        window.analyzeImage(imageFile, predictionData);
       } else {
         console.error('analyzeImage function not available');
       }
