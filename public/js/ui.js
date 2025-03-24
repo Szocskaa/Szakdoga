@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme) {
     htmlElement.setAttribute('data-theme', savedTheme);
+  } else {
+    // Set dark theme as default if not saved
+    htmlElement.setAttribute('data-theme', 'dark');
   }
   
   // Input method toggle
@@ -207,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fullscreen chat functionality
   const fullscreenChatBtn = document.getElementById('fullscreenChatBtn');
   const chatColumn = document.getElementById('chatColumn');
+  const aiAssistantButton = document.getElementById('aiAssistantButton');
   
   if (fullscreenChatBtn && chatColumn) {
     fullscreenChatBtn.addEventListener('click', function() {
@@ -223,6 +227,11 @@ document.addEventListener('DOMContentLoaded', function() {
           </svg>
         `;
         fullscreenChatBtn.setAttribute('title', 'Exit fullscreen');
+        
+        // Hide AI assistant button when in fullscreen mode
+        if (aiAssistantButton) {
+          aiAssistantButton.style.display = 'none';
+        }
       } else {
         fullscreenChatBtn.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -233,6 +242,11 @@ document.addEventListener('DOMContentLoaded', function() {
           </svg>
         `;
         fullscreenChatBtn.setAttribute('title', 'Toggle fullscreen');
+        
+        // Show AI assistant button when exiting fullscreen mode
+        if (aiAssistantButton) {
+          aiAssistantButton.style.display = 'flex';
+        }
       }
       
       // Scroll chat to bottom

@@ -141,8 +141,9 @@ document.addEventListener('DOMContentLoaded', function() {
     text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
     text = text.replace(/_(.*?)_/g, '<em>$1</em>');
     
-    // Format bullet points
-    text = text.replace(/^-\s+(.*?)$/gm, '<li>$1</li>');
+    // Format bullet points - capture and remove the dash/hyphen completely
+    text = text.replace(/^\s*-\s+(.*?)$/gm, '<li>$1</li>');
+    text = text.replace(/^\s*•\s+(.*?)$/gm, '<li>$1</li>');
     text = text.replace(/^([0-9]+)\.\s+(.*?)$/gm, '<li>$1. $2</li>');
     
     // Replace line breaks with <br>
