@@ -37,8 +37,73 @@
     <main>
       <div class="main-content-wrapper">
         <div class="left-column">
-          <div class="prism-card">
-            <h2 class="card-title">Upload Image</h2>
+          <!-- Primary Monitoring Interface -->
+          <div class="prism-card monitoring-card">
+            <h2 class="card-title">Print Monitoring</h2>
+            <button class="settings-gear" id="settingsToggle" title="Settings">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+            
+            <div class="monitoring-container">
+              <div class="monitoring-preview">
+                <video id="monitoringFeed" class="monitoring-feed" autoplay playsinline></video>
+                <div class="monitoring-overlay">
+                  <div class="monitoring-status">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">Monitoring Active</span>
+                  </div>
+                  <div class="monitoring-controls">
+                    <button id="startMonitoringBtn" class="btn btn-primary">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                      </svg>
+                      Start Monitoring
+                    </button>
+                    <button id="pauseMonitoringBtn" class="btn btn-secondary" disabled>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                      </svg>
+                      Pause
+                    </button>
+                    <button id="stopMonitoringBtn" class="btn btn-danger" disabled>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      </svg>
+                      Stop
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="monitoring-settings">
+                <h3>Monitoring Settings</h3>
+                <div class="settings-grid">
+                  <div class="setting-item">
+                    <label for="captureInterval">Capture Interval (seconds)</label>
+                    <input type="number" id="captureInterval" min="1" max="60" value="5">
+                  </div>
+                  <div class="setting-item">
+                    <label for="detectionThreshold">Detection Threshold (%)</label>
+                    <input type="number" id="detectionThreshold" min="0" max="100" value="80">
+                  </div>
+                  <div class="setting-item">
+                    <label for="cameraSelect">Camera</label>
+                    <select id="cameraSelect"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Upload Interface -->
+          <div class="prism-card upload-card">
+            <h2 class="card-title">Manual Analysis</h2>
+            <p class="card-subtitle">Upload an image or capture from webcam for one-time analysis</p>
             
             <div class="input-method-toggle">
               <div class="input-method-btn active" id="uploadBtn">
@@ -188,6 +253,8 @@
   <script src="js/ui.js"></script>
   <script src="js/detection.js"></script>
   <script src="js/chat.js"></script>
+  <script src="js/monitoring.js"></script>
+  <script src="js/detection-manager.js"></script>
 
   <!-- Floating AI Assistant Button -->
   <button id="aiAssistantButton" class="ai-assistant-button">
