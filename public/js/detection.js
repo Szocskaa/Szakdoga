@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const blob = await fetch(window.capturedImage).then(res => res.blob());
         formData.append('image', blob, 'webcam-capture.png');
         
-        response = await fetch('http://localhost:5000/api/roboflow/detect', {
+        response = await fetch('http://localhost:7070/api/roboflow/detect', {
           method: 'POST',
           body: formData,
         });
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData();
         formData.append('image', fileInput.files[0]);
         
-        response = await fetch('http://localhost:5000/api/roboflow/detect', {
+        response = await fetch('http://localhost:7070/api/roboflow/detect', {
           method: 'POST',
           body: formData,
         });

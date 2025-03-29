@@ -1,4 +1,4 @@
-// UI functionality
+0// UI functionality
 document.addEventListener('DOMContentLoaded', function() {
   // Theme toggle functionality
   const themeToggle = document.getElementById('themeToggle');
@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Save theme preference
     localStorage.setItem('theme', newTheme);
+    
+    // If the fullscreen AI assistant is open, sync the theme
+    if (window.syncThemeWithFullscreen && document.getElementById('fullscreenChatOverlay') && 
+        document.getElementById('fullscreenChatOverlay').style.display === 'block') {
+      window.syncThemeWithFullscreen();
+    }
   });
   
   // Check for saved theme preference
@@ -27,6 +33,152 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set dark theme as default if not saved
     htmlElement.setAttribute('data-theme', 'dark');
   }
+  
+  // Chromatic aberration title effect
+  const titleEffect = document.getElementById('titleEffect');
+  const subtitleEffect = document.getElementById('subtitleEffect');
+  const titleLayers = document.querySelectorAll('.title-layer');
+  const subtitleLayers = document.querySelectorAll('.subtitle-layer');
+  const maxOffset = 12;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  let mouseVelocity = { x: 0, y: 0 };
+  
+  // Function to update the chromatic aberration effect based on cursor position
+  function updateChromaticEffect(e) {
+    if (!titleEffect || !subtitleEffect) return;
+    
+    // Get the center of the viewport
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    
+    // Get the center of the title for more localized effect
+    const titleRect = titleEffect.getBoundingClientRect();
+    const titleCenterX = titleRect.left + titleRect.width / 2;
+    const titleCenterY = titleRect.top + titleRect.height / 2;
+    
+    // Calculate mouse velocity
+    const deltaX = e.clientX - lastMouseX;
+    const deltaY = e.clientY - lastMouseY;
+    mouseVelocity = {
+      x: deltaX * 0.5,
+      y: deltaY * 0.5
+    };
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    
+    // Calculate the distance from the cursor to the title (normalized)
+    const distanceX = (e.clientX - titleCenterX) / (window.innerWidth / 2);
+    const distanceY = (e.clientY - titleCenterY) / (window.innerHeight / 2);
+    
+    // Apply a falloff effect based on distance (closer = stronger effect)
+    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    const falloff = Math.max(0, 1 - Math.min(1, distance / 2));
+    
+    // Get current time for animations
+    const time = Date.now() / 1000;
+    
+    // Apply transformations to the title layers with different intensities for each color
+    // Red moves the most, blue moves the least
+    titleLayers.forEach(layer => {
+      // Add some smooth noise to make the effect more organic
+      const noiseX = Math.sin(time * 1.5) * 3;
+      const noiseY = Math.cos(time * 1.2) * 2;
+      
+      // Additional wave effect
+      const waveX = Math.sin(time * 0.8 + titleCenterY * 0.01) * 2;
+      
+      // Add velocity-based movement
+      const velocityX = mouseVelocity.x * 0.5;
+      const velocityY = mouseVelocity.y * 0.3;
+      
+      if (layer.classList.contains('title-layer-red')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * falloff + noiseX * 1.2 + waveX + velocityX}px, ${distanceY * maxOffset * 0.5 * falloff + noiseY * 0.7 + velocityY}px)`;
+      } else if (layer.classList.contains('title-layer-green')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * 0.7 * falloff + noiseX * 0.8 + waveX * 0.7 + velocityX * 0.7}px, ${distanceY * maxOffset * 0.3 * falloff + noiseY * 0.5 + velocityY * 0.7}px)`;
+      } else if (layer.classList.contains('title-layer-blue')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * 0.4 * falloff + noiseX * 0.5 + waveX * 0.4 + velocityX * 0.4}px, ${distanceY * maxOffset * 0.2 * falloff + noiseY * 0.3 + velocityY * 0.4}px)`;
+      }
+    });
+    
+    // Apply the same effect to subtitle but with reduced intensity
+    subtitleLayers.forEach(layer => {
+      // Add some smooth noise to make the effect more organic
+      const noiseX = Math.sin(time * 1.7) * 2;
+      const noiseY = Math.cos(time * 1.3) * 1.5;
+      
+      // Additional wave effect
+      const waveX = Math.sin(time * 0.9 + titleCenterY * 0.012) * 1.5;
+      
+      // Add velocity-based movement
+      const velocityX = mouseVelocity.x * 0.3;
+      const velocityY = mouseVelocity.y * 0.2;
+      
+      if (layer.classList.contains('subtitle-layer-red')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * 0.6 * falloff + noiseX + waveX + velocityX}px, ${distanceY * maxOffset * 0.25 * falloff + noiseY * 0.5 + velocityY}px)`;
+      } else if (layer.classList.contains('subtitle-layer-green')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * 0.4 * falloff + noiseX * 0.7 + waveX * 0.7 + velocityX * 0.7}px, ${distanceY * maxOffset * 0.15 * falloff + noiseY * 0.3 + velocityY * 0.7}px)`;
+      } else if (layer.classList.contains('subtitle-layer-blue')) {
+        layer.style.transform = `translate(${distanceX * maxOffset * 0.2 * falloff + noiseX * 0.4 + waveX * 0.4 + velocityX * 0.4}px, ${distanceY * maxOffset * 0.1 * falloff + noiseY * 0.2 + velocityY * 0.4}px)`;
+      }
+    });
+  }
+  
+  // Add mouse move event listener to the document
+  document.addEventListener('mousemove', updateChromaticEffect);
+  
+  // For touch devices, use touch move events
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches[0]) {
+      updateChromaticEffect({
+        clientX: e.touches[0].clientX,
+        clientY: e.touches[0].clientY
+      });
+    }
+  });
+  
+  // Add subtle animation even when cursor isn't moving
+  let animationFrame;
+  function subtleAnimation() {
+    const time = Date.now() / 1000;
+    // More dynamic motion pattern
+    const amplitude = Math.sin(time * 0.5) * 100 + 150; // Varies between 50 and 250
+    const x = Math.sin(time) * amplitude + window.innerWidth / 2;
+    const y = Math.cos(time * 0.7) * (amplitude * 0.5) + window.innerHeight / 2;
+    
+    // Add some random movement
+    const randomX = Math.sin(time * 0.3) * 50;
+    const randomY = Math.cos(time * 0.4) * 30;
+    
+    updateChromaticEffect({
+      clientX: x + randomX,
+      clientY: y + randomY
+    });
+    
+    animationFrame = requestAnimationFrame(subtleAnimation);
+  }
+  
+  // Start the animation
+  subtleAnimation();
+  
+  // Cancel animation when mouse moves
+  document.addEventListener('mousemove', () => {
+    if (animationFrame) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    }
+  });
+  
+  // Restart animation after no mouse movement for 3 seconds
+  let mouseTimeout;
+  document.addEventListener('mousemove', () => {
+    clearTimeout(mouseTimeout);
+    mouseTimeout = setTimeout(() => {
+      if (!animationFrame) {
+        subtleAnimation();
+      }
+    }, 1000);
+  });
   
   // Input method toggle
   const uploadBtn = document.getElementById('uploadBtn');

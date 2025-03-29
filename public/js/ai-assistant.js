@@ -16,6 +16,56 @@ document.addEventListener('DOMContentLoaded', function() {
   // Store chat history for persistence between sidebar and fullscreen modes
   let chatHistory = [];
   
+  // Function to ensure theme consistency between main UI and fullscreen assistant
+  function syncThemeWithFullscreen() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    
+    if (fullscreenChatOverlay) {
+      fullscreenChatOverlay.setAttribute('data-theme', currentTheme);
+    }
+    
+    if (fullscreenChatContainer) {
+      fullscreenChatContainer.setAttribute('data-theme', currentTheme);
+    }
+    
+    // Apply theme to other fullscreen elements
+    const fullscreenElements = document.querySelectorAll('.fullscreen-chat-container *');
+    fullscreenElements.forEach(element => {
+      element.setAttribute('data-theme', currentTheme);
+    });
+    
+    // Update any theme-specific styles that might need adjustment
+    if (currentTheme === 'light') {
+      if (fullscreenChatOverlay) {
+        fullscreenChatOverlay.style.background = 'rgba(240, 240, 245, 0.7)';
+      }
+      if (fullscreenChatContainer) {
+        fullscreenChatContainer.style.background = 'rgba(240, 240, 245, 0.5)';
+      }
+    } else { // dark theme
+      if (fullscreenChatOverlay) {
+        fullscreenChatOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
+      }
+      if (fullscreenChatContainer) {
+        fullscreenChatContainer.style.background = 'rgba(20, 20, 30, 0.5)';
+      }
+    }
+  }
+  
+  // Expose the function globally for use in other scripts
+  window.syncThemeWithFullscreen = syncThemeWithFullscreen;
+  
+  // Monitor for theme changes to update fullscreen assistant if it's open
+  const htmlElement = document.documentElement;
+  const observer = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+        syncThemeWithFullscreen();
+      }
+    }
+  });
+  observer.observe(htmlElement, { attributes: true });
+  
   // Ensure the theme is dark by default
   if (!document.body.getAttribute('data-theme')) {
     document.body.setAttribute('data-theme', 'dark');
@@ -43,6 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     aiAssistantButton.style.display = 'none';
     fullscreenChatOverlay.style.display = 'block';
+    
+    // Ensure the current theme is applied to the fullscreen chat
+    syncThemeWithFullscreen();
     
     // Apply event listeners for the fullscreen chat
     setupFullscreenChatEventListeners();

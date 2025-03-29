@@ -12,7 +12,7 @@ import { geminiRoutes } from './routes/gemini';
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 7070;
 
 // Configure middleware
 app.use(cors());

@@ -54,14 +54,14 @@
         
         try {
           // Test health endpoint
-          const healthResponse = await fetch('http://localhost:5000/health');
+          const healthResponse = await fetch('http://localhost:7070/health');
           const healthData = await healthResponse.json();
           testResults.innerHTML += `Health endpoint: ${healthResponse.status === 200 ? 'OK' : 'FAILED'}\n`;
           testResults.innerHTML += `Response: ${JSON.stringify(healthData)}\n\n`;
           
           // Test simple Gemini chat message
           testResults.innerHTML += 'Testing Gemini chat endpoint with simple message...\n';
-          const chatResponse = await fetch('http://localhost:5000/api/gemini/chat', {
+          const chatResponse = await fetch('http://localhost:7070/api/gemini/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -107,11 +107,11 @@
           `;
           
           // Log request details
-          console.log('Sending request to:', 'http://localhost:5000/api/gemini/chat');
+          console.log('Sending request to:', 'http://localhost:7070/api/gemini/chat');
           console.log('Request body:', JSON.stringify({ message }));
           
           // Send to backend
-          const response = await fetch('http://localhost:5000/api/gemini/chat', {
+          const response = await fetch('http://localhost:7070/api/gemini/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
