@@ -2,7 +2,6 @@ class PrintMonitor {
   constructor() {
     this.stream = null;
     this.monitoringInterval = null;
-    this.geminiInterval = null;
     this.isMonitoring = false;
     this.isPaused = false;
     this.captureInterval = 5; // Default 5 seconds
@@ -65,6 +64,11 @@ class PrintMonitor {
   
   async startMonitoring() {
     try {
+      // Get camera from detection manager if available
+      if (window.detectionManager && window.detectionManager.selectedCamera) {
+        this.selectedCamera = window.detectionManager.selectedCamera;
+      }
+      
       // Request camera access
       const constraints = {
         video: {
@@ -122,29 +126,23 @@ class PrintMonitor {
   startPeriodicCaptures() {
     this.stopPeriodicCaptures(); // Clear any existing intervals
     
-    // Start Roboflow captures
+    // Get interval from detection manager if available
+    if (window.detectionManager) {
+      this.captureInterval = window.detectionManager.roboflowInterval;
+    }
+    
+    // Start Roboflow captures at regular intervals
     this.monitoringInterval = setInterval(() => {
       if (!this.isPaused) {
         this.captureAndAnalyze('roboflow');
       }
     }, this.captureInterval * 1000);
-    
-    // Start Gemini captures
-    this.geminiInterval = setInterval(() => {
-      if (!this.isPaused) {
-        this.captureAndAnalyze('gemini');
-      }
-    }, (this.captureInterval * 6) * 1000); // Gemini runs every 6x the Roboflow interval
   }
   
   stopPeriodicCaptures() {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-    }
-    if (this.geminiInterval) {
-      clearInterval(this.geminiInterval);
-      this.geminiInterval = null;
     }
   }
   
@@ -160,8 +158,9 @@ class PrintMonitor {
       // Convert canvas to blob
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
       
-      // Add to detection queue
+      // Add to detection queue with source information
       if (window.detectionManager) {
+        // Pass the monitoring source info to help with UI display
         await window.detectionManager.addToDetectionQueue(blob, type);
       }
       
@@ -184,9 +183,16 @@ class PrintMonitor {
     }
   }
   
-  updateIntervals(roboflowInterval, geminiInterval) {
+  updateIntervals(roboflowInterval) {
     this.captureInterval = roboflowInterval;
     if (this.isMonitoring && !this.isPaused) {
+      this.restartMonitoring();
+    }
+  }
+  
+  updateCamera(cameraId) {
+    this.selectedCamera = cameraId;
+    if (this.isMonitoring) {
       this.restartMonitoring();
     }
   }
