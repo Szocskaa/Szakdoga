@@ -305,22 +305,14 @@ class DetectionManager {
   
   async addToDetectionQueue(imageBlob, type = 'roboflow') {
     this.detectionQueue.push({ imageBlob, type });
-    if (!this.isProcessing) {
-      await this.processQueue();
+    
+    // Show feedback that we've queued a detection
+    if (window.printMonitor) {
+      window.printMonitor.logActivity(`Queued ${type} detection task`, 'info');
     }
     
-    // If this is a Roboflow detection, increment the counter
-    if (type === 'roboflow') {
-      this.roboflowCounter++;
-      
-      // Check if we should run a scheduled Gemini detection
-      if (this.roboflowCounter >= this.geminiMultiplier) {
-        this.roboflowCounter = 0; // Reset counter
-        
-        // Create a duplicate of the image for Gemini analysis
-        const blob = await fetch(URL.createObjectURL(imageBlob)).then(r => r.blob());
-        this.detectionQueue.push({ imageBlob: blob, type: 'gemini', scheduled: true });
-      }
+    if (!this.isProcessing) {
+      await this.processQueue();
     }
   }
   
@@ -333,32 +325,88 @@ class DetectionManager {
     const nextItem = this.detectionQueue.shift();
 
     try {
-      let results;
+      let results = null;
       
       if (nextItem.type === 'roboflow') {
-        results = await this.runRoboflowDetection(nextItem.image);
+        // Log that we're processing a Roboflow detection
+        if (window.printMonitor) {
+          window.printMonitor.logActivity('Processing with Roboflow...', 'processing');
+        }
+        
+        results = await this.runRoboflowDetection(nextItem.imageBlob);
       } else if (nextItem.type === 'gemini') {
-        results = await this.runGeminiDetection(nextItem.image);
+        // Log that we're processing a Gemini detection
+        if (window.printMonitor) {
+          window.printMonitor.logActivity('Processing with Gemini...', 'processing');
+        }
+        
+        results = await this.runGeminiDetection(nextItem.imageBlob);
       }
       
-      if (results) {
-        this.handleDetectionResults(results, nextItem.type);
+      // Ensure we have a valid results object
+      if (!results) {
+        results = { 
+          predictions: [],
+          time: new Date().toISOString()
+        };
       }
+      
+      // Handle the detection results
+      this.handleDetectionResults(results, nextItem.type);
     } catch (error) {
-      console.error(`Error processing ${nextItem.type} detection:`, error);
+      console.error(`Error processing ${nextItem?.type || 'unknown'} detection:`, error);
+      
+      if (window.printMonitor) {
+        window.printMonitor.logActivity(`Error processing ${nextItem?.type || 'unknown'} detection`, 'error');
+        
+        // Also call handleDetectionResult with empty results so monitoring can continue
+        window.printMonitor.handleDetectionResult({
+          predictions: [],
+          time: new Date().toISOString()
+        }, nextItem?.type || 'unknown');
+      }
     } finally {
       this.isProcessing = false;
       // Process next item in queue if any
       if (this.detectionQueue.length > 0) {
-        this.processQueue();
+        setTimeout(() => this.processQueue(), 100); // Small delay before processing next item
       }
     }
   }
   
   async runRoboflowDetection(imageBlob) {
-    // Implement Roboflow detection
-    // This should use your existing Roboflow API integration
-    return await window.analyzeImage(new File([imageBlob], 'capture.jpg', { type: 'image/jpeg' }));
+    try {
+      // Create a file from the blob for analyzeImage function
+      const imageFile = new File([imageBlob], 'capture.jpg', { type: 'image/jpeg' });
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Make the request directly to the backend API
+      const response = await fetch('http://localhost:7070/api/roboflow/detect', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      
+      // Parse the JSON response
+      const data = await response.json();
+      
+      // Return the parsed data
+      return data;
+    } catch (error) {
+      console.error('Error in Roboflow detection:', error);
+      
+      // Return a fallback empty result structure so monitoring can continue
+      return {
+        predictions: [],
+        time: new Date().toISOString()
+      };
+    }
   }
   
   async runGeminiDetection(imageBlob) {
@@ -368,36 +416,21 @@ class DetectionManager {
   }
   
   handleDetectionResults(results, type) {
+    // Pass results to PrintMonitor for visual feedback
+    if (window.printMonitor) {
+      window.printMonitor.handleDetectionResult(results, type);
+    }
+    
     if (type === 'roboflow') {
-      this.roboflowCounter++;
+      // Update the UI with Roboflow results, but don't automatically trigger Gemini
       this.updateResultsUI({ roboflow: results });
       
-      if (this.roboflowCounter >= this.geminiMultiplier) {
-        this.roboflowCounter = 0;
-        // Queue a Gemini detection
-        const latestImage = document.getElementById('monitoringFeed');
-        if (latestImage && latestImage.srcObject) {
-          const videoTrack = latestImage.srcObject.getVideoTracks()[0];
-          if (videoTrack) {
-            const imageCapture = new ImageCapture(videoTrack);
-            imageCapture.grabFrame()
-              .then(imageBitmap => {
-                const canvas = document.createElement('canvas');
-                canvas.width = imageBitmap.width;
-                canvas.height = imageBitmap.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imageBitmap, 0, 0);
-                
-                canvas.toBlob(blob => {
-                  this.addToDetectionQueue(blob, 'gemini');
-                });
-              })
-              .catch(error => {
-                console.error('Error capturing frame for Gemini detection:', error);
-              });
-          }
-        }
-      }
+      // Only increment the counter if we're specifically configured to use Gemini
+      // This counter is used in the Manual Analysis flow, but not for automatic scans
+      this.roboflowCounter++;
+      
+      // NOTE: We've removed the automatic Gemini detection that was here
+      // Gemini analysis should only be triggered manually through the UI
     } else if (type === 'gemini') {
       this.updateResultsUI({ gemini: results });
     }

@@ -51,10 +51,6 @@
               <div class="monitoring-preview">
                 <video id="monitoringFeed" class="monitoring-feed" autoplay playsinline></video>
                 <div class="monitoring-overlay">
-                  <div class="monitoring-status">
-                    <span class="status-indicator"></span>
-                    <span class="status-text">Monitoring Active</span>
-                  </div>
                   <div class="monitoring-controls">
                     <button id="startMonitoringBtn" class="btn btn-primary">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -77,7 +73,9 @@
                       Stop
                     </button>
                   </div>
+                  <!-- The activity log and toggle will be dynamically injected by JS -->
                 </div>
+                <!-- The flash overlay will be injected here by JS -->
               </div>
             </div>
           </div>
