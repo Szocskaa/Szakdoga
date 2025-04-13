@@ -253,6 +253,26 @@ document.addEventListener('DOMContentLoaded', function() {
   captureBtn.addEventListener('click', function() {
     if (!window.stream) return;
     
+    // If in "Capture Again" state, reset the view to live feed
+    if (this.textContent === 'Capture Again') {
+      // Hide the captured image display
+      const capturedDisplay = document.getElementById('capturedImageDisplay');
+      if (capturedDisplay) {
+        capturedDisplay.style.display = 'none';
+      }
+      
+      // Show the live webcam feed again
+      webcamFeed.style.display = 'block';
+      webcamCanvas.style.display = 'none';
+      
+      // Reset the button text
+      this.textContent = 'Capture Image';
+      
+      // Clear the captured image
+      window.capturedImage = null;
+      return;
+    }
+    
     const context = webcamCanvas.getContext('2d');
     webcamCanvas.width = webcamFeed.videoWidth;
     webcamCanvas.height = webcamFeed.videoHeight;
@@ -261,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     context.drawImage(webcamFeed, 0, 0, webcamCanvas.width, webcamCanvas.height);
     
     // Get the image data
-    capturedImage = webcamCanvas.toDataURL('image/png');
+    window.capturedImage = webcamCanvas.toDataURL('image/png');
     
     // Give visual feedback that image was captured
     const flash = document.createElement('div');
@@ -286,11 +306,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 50);
     
     // Change the capture button text to indicate success
-    captureBtn.textContent = 'Image Captured';
-    setTimeout(() => {
-      captureBtn.textContent = 'Capture Again';
-    }, 1500);
+    captureBtn.textContent = 'Capture Again';
+    
+    // Create and display the captured image
+    displayCapturedImage();
   });
+  
+  // Function to display the captured image instead of live feed
+  function displayCapturedImage() {
+    if (!window.capturedImage) return;
+    
+    // Hide the live webcam feed
+    webcamFeed.style.display = 'none';
+    
+    // Display the canvas with the captured image
+    webcamCanvas.style.display = 'block';
+    
+    // Add captured image overlay if it doesn't exist
+    if (!document.getElementById('capturedImageDisplay')) {
+      const capturedDisplay = document.createElement('img');
+      capturedDisplay.id = 'capturedImageDisplay';
+      capturedDisplay.src = window.capturedImage;
+      capturedDisplay.style.position = 'absolute';
+      capturedDisplay.style.top = '0';
+      capturedDisplay.style.left = '0';
+      capturedDisplay.style.width = '100%';
+      capturedDisplay.style.height = '100%';
+      capturedDisplay.style.objectFit = 'cover';
+      
+      const webcamInner = document.querySelector('.webcam-inner');
+      webcamInner.appendChild(capturedDisplay);
+    } else {
+      // Update existing captured image display
+      document.getElementById('capturedImageDisplay').src = window.capturedImage;
+      document.getElementById('capturedImageDisplay').style.display = 'block';
+    }
+  }
   
   // Handle upload area clicks
   uploadArea.addEventListener('click', function() {
@@ -408,4 +459,29 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Add event listener to detect button
+  const detectButton = document.getElementById('detectButton');
+  detectButton.addEventListener('click', function() {
+    // This event handler is only for resetting the webcam view after analysis
+    // Don't reset if no image is captured
+    if (!window.capturedImage) return;
+    
+    // Allow the current function to complete before resetting
+    setTimeout(() => {
+      // Reset only if analysis was successful
+      // This will keep the freeze-frame if there was an error
+      const resultsContainer = document.getElementById('resultsContainer');
+      if (resultsContainer && !resultsContainer.querySelector('.error-message')) {
+        const capturedDisplay = document.getElementById('capturedImageDisplay');
+        if (capturedDisplay) {
+          capturedDisplay.style.display = 'none';
+        }
+        
+        webcamFeed.style.display = 'block';
+        webcamCanvas.style.display = 'none';
+        captureBtn.textContent = 'Capture Image';
+      }
+    }, 100);
+  });
 }); 

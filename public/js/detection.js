@@ -65,6 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const data = await response.json();
       displayResults(data, isWebcamActive ? window.capturedImage : null);
+      
+      // Note: We don't need to reset the webcam view here as it's handled in ui.js
     } catch (error) {
       resultsContainer.innerHTML = `
         <div class="prism-card">
@@ -194,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (capturedImageUrl) {
         // Convert base64/dataURL to Blob
         const response = await fetch(capturedImageUrl);
-        imageFile = await response.blob();
+        const blob = await response.blob();
+        // Create a File object with proper filename and extension
+        imageFile = new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' });
       } else if (uploadedFile) {
         imageFile = uploadedFile;
       } else {
