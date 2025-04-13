@@ -308,7 +308,7 @@ class DetectionManager {
     
     // Show feedback that we've queued a detection
     if (window.printMonitor) {
-      window.printMonitor.logActivity(`Queued ${type} detection task`, 'info');
+      console.log(`Queued ${type} detection task`);
     }
     
     if (!this.isProcessing) {
@@ -330,14 +330,14 @@ class DetectionManager {
       if (nextItem.type === 'roboflow') {
         // Log that we're processing a Roboflow detection
         if (window.printMonitor) {
-          window.printMonitor.logActivity('Processing with Roboflow...', 'processing');
+          console.log('Processing with Roboflow...');
         }
         
         results = await this.runRoboflowDetection(nextItem.imageBlob);
       } else if (nextItem.type === 'gemini') {
         // Log that we're processing a Gemini detection
         if (window.printMonitor) {
-          window.printMonitor.logActivity('Processing with Gemini...', 'processing');
+          console.log('Processing with Gemini...');
         }
         
         results = await this.runGeminiDetection(nextItem.imageBlob);
@@ -357,7 +357,7 @@ class DetectionManager {
       console.error(`Error processing ${nextItem?.type || 'unknown'} detection:`, error);
       
       if (window.printMonitor) {
-        window.printMonitor.logActivity(`Error processing ${nextItem?.type || 'unknown'} detection`, 'error');
+        console.error(`Error processing ${nextItem?.type || 'unknown'} detection`);
         
         // Also call handleDetectionResult with empty results so monitoring can continue
         window.printMonitor.handleDetectionResult({
@@ -410,9 +410,28 @@ class DetectionManager {
   }
   
   async runGeminiDetection(imageBlob) {
-    // Implement Gemini detection
-    // This should use your existing Gemini API integration
-    return await window.analyzeWithGemini(new File([imageBlob], 'capture.jpg', { type: 'image/jpeg' }));
+    try {
+      console.log('RunGeminiDetection: Starting Gemini detection with blob size:', imageBlob.size);
+      
+      // Make sure window.analyzeWithGemini exists
+      if (typeof window.analyzeWithGemini !== 'function') {
+        console.error('RunGeminiDetection: window.analyzeWithGemini is not a function');
+        throw new Error('Gemini analysis function not available');
+      }
+      
+      // Convert blob to File for analyzeWithGemini function
+      const imageFile = new File([imageBlob], 'capture.jpg', { type: 'image/jpeg' });
+      
+      console.log('RunGeminiDetection: Calling analyzeWithGemini with image file');
+      // Call the Gemini API integration function
+      const result = await window.analyzeWithGemini(imageFile);
+      
+      console.log('RunGeminiDetection: Received result from Gemini:', result);
+      return result;
+    } catch (error) {
+      console.error('RunGeminiDetection: Error in Gemini detection:', error);
+      throw error; // Rethrow to be handled by the caller
+    }
   }
   
   handleDetectionResults(results, type) {
@@ -422,17 +441,166 @@ class DetectionManager {
     }
     
     if (type === 'roboflow') {
-      // Update the UI with Roboflow results, but don't automatically trigger Gemini
+      // Update the UI with Roboflow results
       this.updateResultsUI({ roboflow: results });
       
-      // Only increment the counter if we're specifically configured to use Gemini
-      // This counter is used in the Manual Analysis flow, but not for automatic scans
-      this.roboflowCounter++;
+      // Note: roboflowCounter is now incremented in monitoring.js
+      // We're just checking if we need to run Gemini analysis
       
-      // NOTE: We've removed the automatic Gemini detection that was here
-      // Gemini analysis should only be triggered manually through the UI
+      console.log(`Roboflow detection #${this.roboflowCounter} complete. Checking if Gemini scan needed...`);
+      
+      // Check if we should run Gemini detection based on the configured multiplier
+      if (this.roboflowCounter % this.geminiMultiplier === 0) {
+        // Log that we're doing a Gemini scan due to the configured frequency
+        console.log(`Running scheduled Gemini analysis (every ${this.geminiMultiplier} scans)`);
+        
+        // Run Gemini analysis with the latest frame
+        this.runScheduledGeminiAnalysis(results);
+      }
     } else if (type === 'gemini') {
       this.updateResultsUI({ gemini: results });
+    }
+  }
+  
+  async runScheduledGeminiAnalysis(roboflowResults) {
+    // Make sure the AI assistant sidebar is visible
+    const chatColumn = document.getElementById('chatColumn');
+    if (chatColumn && chatColumn.style.display !== 'block') {
+      chatColumn.style.display = 'block';
+    }
+    
+    // Add a message to the chat about running Gemini analysis
+    const chatSidebarMessages = document.getElementById('chatSidebarMessages');
+    if (chatSidebarMessages) {
+      chatSidebarMessages.innerHTML += `
+        <div class="message ai-message">
+          <div class="system-message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+            Starting scheduled Gemini AI analysis (scan ${this.roboflowCounter})...
+          </div>
+        </div>
+      `;
+      
+      // Add loading indicator
+      chatSidebarMessages.innerHTML += `
+        <div class="message ai-message" id="ai-loading">
+          <div class="loading-text">Analyzing 3D print image...</div>
+        </div>
+      `;
+      
+      chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+    }
+    
+    // Add style for error messages if not already present
+    if (!document.getElementById('error-message-style')) {
+      const style = document.createElement('style');
+      style.id = 'error-message-style';
+      style.textContent = `
+        .system-message.error {
+          background-color: rgba(255, 0, 0, 0.1);
+          color: #ff4d4d;
+          border-left: 3px solid #ff4d4d;
+          padding: 10px;
+          margin: 10px 0;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Capture the latest image from the monitoring feed for Gemini analysis
+    if (window.printMonitor && window.printMonitor.monitoringFeed) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = window.printMonitor.monitoringFeed.videoWidth;
+        canvas.height = window.printMonitor.monitoringFeed.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(window.printMonitor.monitoringFeed, 0, 0);
+        
+        // Update status to show Gemini processing
+        if (window.printMonitor) {
+          window.printMonitor.updateStatusPill('processing', 'Processing', 'Running Gemini analysis...');
+          console.log('Starting Gemini AI analysis...');
+        }
+        
+        // Convert canvas to blob
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+        
+        // Create a File object from the blob for the analyzeImage function
+        const file = new File([blob], 'monitoring-capture.jpg', { type: 'image/jpeg' });
+        
+        // Use the same approach as the image upload section - use the window.analyzeImage function
+        // which is already set up to display results in the AI assistant tab
+        if (typeof window.analyzeImage === 'function') {
+          // First, show the captured image in the chat
+          const imagePreview = URL.createObjectURL(file);
+          if (chatSidebarMessages) {
+            // Remove the standard loading indicator since analyzeImage will add its own
+            const loadingElement = document.getElementById('ai-loading');
+            if (loadingElement) {
+              loadingElement.remove();
+            }
+            
+            // Show the image we're analyzing
+            chatSidebarMessages.innerHTML += `
+              <div class="message user-message">
+                <img src="${imagePreview}" alt="3D Print" class="image-preview">
+                <div>Automated scan #${this.roboflowCounter} - analyzing this print...</div>
+              </div>
+            `;
+            chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+          }
+          
+          // Now analyze the image with the roboflow results
+          console.log('Calling analyzeImage with captured frame and Roboflow predictions');
+          await window.analyzeImage(file, roboflowResults.predictions || null);
+        } else {
+          // Fallback to the old method if analyzeImage is not available
+          console.log('analyzeImage function not available, using fallback method');
+          const geminiResults = await this.runGeminiDetection(blob);
+          console.log('Gemini analysis results:', geminiResults);
+          
+          // Update the UI with the results
+          this.updateResultsUI({ gemini: geminiResults });
+        }
+        
+        // Show a completion message and restore monitoring state
+        if (window.printMonitor) {
+          window.printMonitor.updateStatusPill('active', 'Active', 'Gemini analysis complete');
+          console.log('Gemini analysis complete');
+        }
+      } catch (error) {
+        console.error('Error in scheduled Gemini analysis:', error);
+        
+        if (window.printMonitor) {
+          window.printMonitor.updateStatusPill('error', 'Error', 'Gemini analysis failed');
+          console.error('Gemini analysis failed: ' + error.message);
+        }
+        
+        // Add error message to chat
+        if (chatSidebarMessages) {
+          // Remove loading indicator if it exists
+          const loadingElement = document.getElementById('ai-loading');
+          if (loadingElement) {
+            loadingElement.remove();
+          }
+          
+          chatSidebarMessages.innerHTML += `
+            <div class="message ai-message">
+              <div class="system-message error">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                Gemini analysis failed: ${error.message}
+              </div>
+            </div>
+          `;
+          chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+        }
+      }
     }
   }
   
@@ -545,6 +713,301 @@ class DetectionManager {
       
       geminiSection.appendChild(content);
       resultsDisplay.appendChild(geminiSection);
+      
+      // Also update the AI assistant chat with Gemini results if available
+      this.updateAIAssistantWithGeminiResults(results.gemini);
+    }
+  }
+  
+  updateAIAssistantWithGeminiResults(geminiResults) {
+    // Only proceed if we have valid results and are in monitoring mode
+    if (!geminiResults || !window.printMonitor || !window.printMonitor.isMonitoring) {
+      return;
+    }
+    
+    const chatSidebarMessages = document.getElementById('chatSidebarMessages');
+    if (!chatSidebarMessages) return;
+    
+    console.log('UpdateAIAssistantWithGeminiResults: Updating AI Assistant with Gemini results');
+    
+    // If we don't have proper analysis, show an error message
+    if (!geminiResults.analysis || geminiResults.analysis.includes('Analysis failed')) {
+      chatSidebarMessages.innerHTML += `
+        <div class="message ai-message">
+          <div class="system-message error">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            Failed to get Gemini analysis: ${geminiResults.analysis || 'Unknown error'}
+          </div>
+        </div>
+      `;
+      chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+      return;
+    }
+    
+    // Extract the main parts from the analysis
+    let confirmationText = 'Analysis not available';
+    let issueType = '';
+    let severity = '';
+    
+    // Extract confirmation
+    const confirmationMatch = geminiResults.analysis.match(/Confirmation:\s*([^\n]+)/i);
+    if (confirmationMatch && confirmationMatch[1]) {
+      confirmationText = confirmationMatch[1].trim();
+    }
+    
+    // Extract issue type
+    const issueTypeMatch = geminiResults.analysis.match(/Issue Type:\s*([^\n]+)/i);
+    if (issueTypeMatch && issueTypeMatch[1]) {
+      issueType = issueTypeMatch[1].trim();
+    }
+    
+    // Extract severity
+    const severityMatch = geminiResults.analysis.match(/Severity:\s*(\d+)/i);
+    if (severityMatch && severityMatch[1]) {
+      const severityScore = parseInt(severityMatch[1].trim());
+      
+      if (severityScore >= 8) {
+        severity = 'High';
+      } else if (severityScore >= 4) {
+        severity = 'Medium';
+      } else {
+        severity = 'Low';
+      }
+    }
+    
+    // Determine if it's a failure or success based on the confirmation text
+    const isFailure = confirmationText.toLowerCase().includes('fail') || 
+                       confirmationText.toLowerCase().includes('issue') ||
+                       confirmationText.toLowerCase().includes('problem');
+    
+    // Create the message HTML
+    let messageHTML = `
+      <div class="message ai-message">
+        <div class="system-message">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+          </svg>
+          Gemini analysis completed for scan #${this.roboflowCounter}
+        </div>
+      </div>
+      <div class="message ai-message">
+        <div class="gemini-update">
+          <div class="update-header ${isFailure ? 'error' : 'success'}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+            Gemini Analysis Update
+          </div>
+          <div class="update-content">
+            <div class="update-item"><strong>Status:</strong> ${confirmationText}</div>
+            ${issueType ? `<div class="update-item"><strong>Issue:</strong> ${issueType}</div>` : ''}
+            ${severity ? `<div class="update-item"><strong>Severity:</strong> ${severity}</div>` : ''}
+          </div>
+          <div class="update-footer">
+            <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+            <button class="view-details-btn" onclick="window.showFullAnalysis('${encodeURIComponent(geminiResults.analysis.replace(/'/g, "\\'"))}')">View Full Analysis</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add the message to the chat
+    chatSidebarMessages.innerHTML += messageHTML;
+    
+    // Scroll to the bottom of the chat
+    chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+    
+    // If this is a failure, make sure it's prominent
+    if (isFailure && window.printMonitor) {
+      console.log(`Gemini detected a print failure: ${issueType || confirmationText}`);
+    }
+    
+    // Implement the showFullAnalysis function globally if it doesn't exist
+    if (!window.showFullAnalysis) {
+      window.showFullAnalysis = function(encodedAnalysis) {
+        const analysis = decodeURIComponent(encodedAnalysis);
+        
+        // Create a modal to show the full analysis
+        const modal = document.createElement('div');
+        modal.className = 'analysis-modal';
+        modal.innerHTML = `
+          <div class="analysis-modal-content">
+            <div class="analysis-modal-header">
+              <h3>Full Gemini Analysis</h3>
+              <button class="close-modal-btn">&times;</button>
+            </div>
+            <div class="analysis-modal-body">
+              <pre>${analysis}</pre>
+            </div>
+          </div>
+        `;
+        
+        // Add the modal to the body
+        document.body.appendChild(modal);
+        
+        // Add event listener to close the modal
+        modal.querySelector('.close-modal-btn').addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+        
+        // Close modal when clicking outside the content
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            document.body.removeChild(modal);
+          }
+        });
+      };
+      
+      // Add modal styles if they don't exist
+      if (!document.getElementById('analysis-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'analysis-modal-styles';
+        style.textContent = `
+          .analysis-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+          }
+          
+          .analysis-modal-content {
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          }
+          
+          .analysis-modal-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+          }
+          
+          .analysis-modal-header h3 {
+            margin: 0;
+            color: var(--text-color);
+          }
+          
+          .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-color);
+          }
+          
+          .analysis-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+          }
+          
+          .analysis-modal-body pre {
+            white-space: pre-wrap;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-color);
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      // Add styles for the Gemini updates in chat if they don't exist
+      if (!document.getElementById('gemini-update-styles')) {
+        const style = document.createElement('style');
+        style.id = 'gemini-update-styles';
+        style.textContent = `
+          .gemini-update {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+          }
+          
+          .update-header {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+          }
+          
+          .update-header.error {
+            background-color: rgba(255, 77, 77, 0.15);
+            color: rgb(255, 77, 77);
+          }
+          
+          .update-header.success {
+            background-color: rgba(75, 181, 67, 0.15);
+            color: rgb(75, 181, 67);
+          }
+          
+          .update-content {
+            padding: 12px;
+            background-color: var(--card-bg-color);
+          }
+          
+          .update-item {
+            margin-bottom: 4px;
+          }
+          
+          .update-footer {
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+          }
+          
+          .timestamp {
+            color: var(--text-secondary-color);
+          }
+          
+          .view-details-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: underline;
+            padding: 0;
+          }
+          
+          .system-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary-color);
+          }
+        `;
+        document.head.appendChild(style);
+      }
     }
   }
   

@@ -45,12 +45,102 @@ class PrintMonitor {
         <div class="status-pill-text">Ready</div>
       </div>
       <div class="info-section">System ready</div>
-      <div class="countdown-section">
-        <div class="countdown-label">Next scan:</div>
-        <div class="countdown-time">--</div>
+      
+      <div class="counters-container">
+        <div class="counter-section">
+          <div class="counter-label">Next scan:</div>
+          <div class="counter-progress">
+            <div class="counter-progress-bar"></div>
+            <div class="counter-text">--</div>
+          </div>
+        </div>
+        
+        <div class="counter-section">
+          <div class="counter-label">Gemini AI:</div>
+          <div class="counter-progress gemini-counter-progress">
+            <div class="counter-progress-bar gemini-counter-progress-bar"></div>
+            <div class="counter-text gemini-counter-text">0 / ?</div>
+          </div>
+        </div>
       </div>
-      <div class="countdown-indicator"></div>
     `;
+    
+    // Add styles for the counters
+    if (!document.getElementById('counter-styles')) {
+      const style = document.createElement('style');
+      style.id = 'counter-styles';
+      style.textContent = `
+        .counters-container {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 10px;
+        }
+        
+        .counter-section {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        
+        .counter-label {
+          font-size: 12px;
+          color: var(--text-secondary-color, #a0a0a0);
+          width: 75px;
+        }
+        
+        .counter-progress {
+          position: relative;
+          width: 100px;
+          height: 14px;
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 7px;
+          overflow: hidden;
+          flex-grow: 1;
+        }
+        
+        .counter-progress-bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          background: linear-gradient(to right, #4CAF50, #8BC34A);
+          width: 0%;
+          transition: width 0.5s ease;
+        }
+        
+        .gemini-counter-progress-bar {
+          background: linear-gradient(to right, #8a2be2, #4169e1);
+        }
+        
+        .counter-text {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          color: white;
+          text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+        
+        @keyframes pulse-bright {
+          0% { opacity: 1; filter: brightness(1); }
+          50% { opacity: 0.7; filter: brightness(1.5); }
+          100% { opacity: 1; filter: brightness(1); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
     
     this.flashOverlay = document.createElement('div');
     this.flashOverlay.className = 'capture-flash-overlay';
@@ -125,7 +215,49 @@ class PrintMonitor {
         this.captureInterval = window.detectionManager.roboflowInterval;
       }
       
+      // Reset roboflow counter in detection manager
+      if (window.detectionManager) {
+        window.detectionManager.roboflowCounter = 0;
+        console.log('Reset Roboflow counter to 0');
+        
+        // Also initialize the Gemini counter display
+        const geminiMultiplier = window.detectionManager.geminiMultiplier;
+        this.updateGeminiCounter(0, geminiMultiplier, geminiMultiplier);
+      }
+      
+      // Check if Gemini analysis is properly configured
+      const isGeminiConfigured = typeof window.analyzeWithGemini === 'function';
+      
       this.startPeriodicCaptures();
+      
+      // Show the AI assistant sidebar when monitoring starts
+      const chatColumn = document.getElementById('chatColumn');
+      if (chatColumn) {
+        chatColumn.style.display = 'block';
+        
+        // Add a message to the chat about monitoring starting
+        const chatSidebarMessages = document.getElementById('chatSidebarMessages');
+        if (chatSidebarMessages) {
+          // Add a clear message about Gemini configuration status
+          let geminiStatusMessage = isGeminiConfigured 
+            ? `Gemini AI analysis will run every ${window.detectionManager ? window.detectionManager.geminiMultiplier : '?'} Roboflow scans.`
+            : '<span style="color: #ff6b6b; font-weight: bold;">Warning: Gemini AI analysis is not properly configured. Check console for errors.</span>';
+          
+          chatSidebarMessages.innerHTML += `
+            <div class="message ai-message">
+              <div class="system-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Print monitoring has started. Roboflow scans will run every ${this.captureInterval} seconds. ${geminiStatusMessage}
+              </div>
+            </div>
+          `;
+          chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+        }
+      }
       
     } catch (error) {
       console.error('Error starting monitoring:', error);
@@ -163,6 +295,33 @@ class PrintMonitor {
     this.updateUIState();
     
     this.updateCountdown(null);
+    
+    // Hide the AI assistant sidebar when monitoring stops
+    const chatColumn = document.getElementById('chatColumn');
+    if (chatColumn) {
+      // Add a message to the chat about monitoring stopping first
+      const chatSidebarMessages = document.getElementById('chatSidebarMessages');
+      if (chatSidebarMessages) {
+        chatSidebarMessages.innerHTML += `
+          <div class="message ai-message">
+            <div class="system-message">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Print monitoring has stopped.
+            </div>
+          </div>
+        `;
+        chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
+      }
+      
+      // Allow a moment for the message to be seen, then hide the chat column
+      setTimeout(() => {
+        chatColumn.style.display = 'none';
+      }, 3000);
+    }
   }
   
   startPeriodicCaptures() {
@@ -190,29 +349,76 @@ class PrintMonitor {
   updateCountdownTimer() {
     if (!this.isMonitoring || this.isPaused) {
       this.updateCountdown(null);
+      this.updateGeminiCounter(null);
       return;
     }
     
     const now = Date.now();
     const timeLeft = Math.max(0, Math.ceil((this.nextCaptureTime - now) / 1000));
     this.updateCountdown(timeLeft);
+    
+    // Update the Gemini counter if detectionManager is available
+    if (window.detectionManager) {
+      const currentCount = window.detectionManager.roboflowCounter;
+      const geminiMultiplier = window.detectionManager.geminiMultiplier;
+      const nextGeminiAt = geminiMultiplier - (currentCount % geminiMultiplier);
+      
+      this.updateGeminiCounter(currentCount, nextGeminiAt, geminiMultiplier);
+    }
   }
   
   updateCountdown(seconds) {
-    const countdownIndicator = this.statusPill?.querySelector('.countdown-indicator');
-    const countdownTime = this.statusPill?.querySelector('.countdown-time');
+    const counterProgressBar = this.statusPill?.querySelector('.counter-progress-bar');
+    const counterText = this.statusPill?.querySelector('.counter-text');
     
-    if (!countdownIndicator || !countdownTime) return;
+    if (!counterProgressBar || !counterText) return;
     
     if (seconds === null) {
-      countdownIndicator.style.width = '0';
-      countdownTime.textContent = '--';
+      counterProgressBar.style.width = '0';
+      counterText.textContent = '--';
       return;
     }
     
-    countdownTime.textContent = `${seconds}s`;
+    counterText.textContent = `${seconds}s`;
     const percentage = (seconds / this.captureInterval) * 100;
-    countdownIndicator.style.width = `${percentage}%`;
+    counterProgressBar.style.width = `${percentage}%`;
+  }
+  
+  updateGeminiCounter(currentCount, nextGeminiAt, geminiMultiplier) {
+    const progressBar = this.statusPill?.querySelector('.gemini-counter-progress-bar');
+    const counterText = this.statusPill?.querySelector('.gemini-counter-text');
+    
+    if (!progressBar || !counterText) return;
+    
+    if (currentCount === null) {
+      progressBar.style.width = '0%';
+      counterText.textContent = '0 / ?';
+      progressBar.style.animation = 'none';
+      return;
+    }
+    
+    const currentPosition = geminiMultiplier - nextGeminiAt;
+    const percentage = (currentPosition / geminiMultiplier) * 100;
+    
+    // Update the progress bar and text
+    progressBar.style.width = `${percentage}%`;
+    counterText.textContent = `${currentPosition} / ${geminiMultiplier}`;
+    
+    // Add pulsing animation when we're close to the next Gemini scan
+    if (nextGeminiAt <= 1) {
+      // Use a faster, more noticeable pulse animation when we're at the trigger point
+      progressBar.style.animation = 'pulse-bright 1s infinite';
+      progressBar.style.background = 'linear-gradient(to right, #ff00ff, #4169e1)';
+    } else if (nextGeminiAt <= 2) {
+      // Slow pulse for approaching the trigger point
+      progressBar.style.animation = 'pulse 2s infinite';
+      progressBar.style.background = 'linear-gradient(to right, #9932cc, #4169e1)';
+    } else {
+      progressBar.style.animation = 'none';
+      progressBar.style.background = 'linear-gradient(to right, #8a2be2, #4169e1)';
+    }
+    
+    console.log(`Updated Gemini counter: ${currentPosition}/${geminiMultiplier}, next in: ${nextGeminiAt}, pulse: ${nextGeminiAt <= 2}`);
   }
   
   stopPeriodicCaptures() {
@@ -244,6 +450,18 @@ class PrintMonitor {
         try {
           const results = await window.detectionManager.runRoboflowDetection(blob);
           
+          // Increment roboflow counter after successful detection
+          if (window.detectionManager) {
+            window.detectionManager.roboflowCounter++;
+            const currentCount = window.detectionManager.roboflowCounter;
+            const geminiMultiplier = window.detectionManager.geminiMultiplier;
+            const nextGeminiAt = geminiMultiplier - (currentCount % geminiMultiplier);
+            
+            console.log(`Roboflow scan #${currentCount} completed. Next Gemini scan in ${nextGeminiAt} scans.`);
+            this.updateGeminiCounter(currentCount, nextGeminiAt, geminiMultiplier);
+          }
+          
+          // Log the results
           if (results.predictions && results.predictions.length > 0) {
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#FF4D4D';
@@ -278,6 +496,12 @@ class PrintMonitor {
           this.capturedImage = canvas.toDataURL('image/jpeg');
           this.handleDetectionResult(results, detectionType);
           this.nextCaptureTime = Date.now() + (this.captureInterval * 1000);
+          
+          // Check if we should trigger Gemini analysis
+          if (window.detectionManager && window.detectionManager.roboflowCounter % window.detectionManager.geminiMultiplier === 0) {
+            console.log(`Triggering Gemini analysis after scan #${window.detectionManager.roboflowCounter}`);
+            window.detectionManager.handleDetectionResults(results, 'roboflow');
+          }
         } catch (error) {
           console.error('Error in Roboflow detection:', error);
           this.updateStatusPill('error', 'Error', 'Analysis failed');

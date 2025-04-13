@@ -549,6 +549,42 @@ document.addEventListener('DOMContentLoaded', function() {
   // Export the analyzeImage function to the global scope
   window.analyzeImage = analyzeImage;
   
+  // Create a wrapper function for detection-manager.js to use
+  window.analyzeWithGemini = async function(imageFile) {
+    console.log('analyzeWithGemini called from detection-manager');
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Send directly to backend for analysis
+      const response = await fetch('/api/gemini/analyze-print', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to analyze image: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Gemini analysis completed successfully');
+      
+      return {
+        analysis: data.response,
+        imageUrl: data.imageUrl,
+        time: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error in analyzeWithGemini:', error);
+      // Return empty results on error
+      return {
+        analysis: 'Analysis failed: ' + error.message,
+        time: new Date().toISOString()
+      };
+    }
+  };
+  
   // Ensure escapeHtml function exists
   if (!window.escapeHtml) {
     window.escapeHtml = function(unsafe) {
