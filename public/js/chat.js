@@ -549,6 +549,97 @@ document.addEventListener('DOMContentLoaded', function() {
   // Export the analyzeImage function to the global scope
   window.analyzeImage = analyzeImage;
   
+  // Create a version of analyzeImage that doesn't show the image again (for detection-manager.js)
+  window.analyzeImageWithoutDuplicatingImage = async function(file, predictionData = null) {
+    console.log('analyzeImageWithoutDuplicatingImage called - preventing duplicate image display');
+    
+    // Only use chatSidebarMessages as that's what exists in the HTML
+    const chatMessages = document.getElementById('chatSidebarMessages');
+      
+    if (!chatMessages) {
+      console.error('Chat messages element not found');
+      return;
+    }
+    
+    // Check if there's already an analysis in progress
+    if (document.getElementById('ai-loading')) {
+      console.log('Analysis already in progress, not starting a new one');
+      return;
+    }
+    
+    // Show loading indicator (but skip showing the image again)
+    chatMessages.innerHTML += `
+      <div class="message ai-message" id="ai-loading">
+        <div class="loading-text">Analyzing your 3D print failure...</div>
+      </div>
+    `;
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    try {
+      // Create a FormData object to send to the server
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Add prediction data if available
+      if (predictionData) {
+        formData.append('predictions', JSON.stringify(predictionData));
+      }
+      
+      // Send to backend for analysis
+      const response = await fetch('/api/gemini/analyze-print', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Remove loading indicator
+      const loadingMessage = document.getElementById('ai-loading');
+      if (loadingMessage) {
+        loadingMessage.remove();
+      }
+      
+      // Format and display the analysis
+      const formattedAnalysis = formatImageAnalysis(data.response);
+      
+      // Add the AI response
+      chatMessages.innerHTML += `
+        <div class="message ai-message">
+          ${formattedAnalysis}
+        </div>
+      `;
+      
+      // Scroll to bottom
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      return data;
+    } catch (error) {
+      console.error('Error analyzing image with Gemini:', error);
+      
+      // Remove loading indicator
+      const loadingMessage = document.getElementById('ai-loading');
+      if (loadingMessage) {
+        loadingMessage.remove();
+      }
+      
+      // Show error message
+      chatMessages.innerHTML += `
+        <div class="message ai-message error">
+          Sorry, I couldn't analyze the image. Please try again. Error: ${error.message}
+        </div>
+      `;
+      
+      // Scroll to bottom
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+  };
+  
   // Create a wrapper function for detection-manager.js to use
   window.analyzeWithGemini = async function(imageFile) {
     console.log('analyzeWithGemini called from detection-manager');

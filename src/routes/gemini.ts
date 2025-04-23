@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
-import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { upload } from '../uploadConfig';
 
 dotenv.config();
 
@@ -20,47 +20,18 @@ if (!GEMINI_API_KEY) {
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads');
-    // Ensure the uploads directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `print-failure-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    
-    cb(new Error('Error: Only image files (jpeg, jpg, png, gif, webp) are allowed'));
-  }
-});
-
 // Helper function to read image as base64
 async function fileToGenerativePart(filePath: string): Promise<{
   inlineData: { data: string, mimeType: string }
 }> {
-  const mimeType = path.extname(filePath).toLowerCase() === '.png' 
-    ? 'image/png' 
-    : path.extname(filePath).toLowerCase() === '.webp'
-      ? 'image/webp'
-      : 'image/jpeg';
+  const extension = path.extname(filePath).toLowerCase();
+  // Support more image formats based on documentation
+  const mimeType = 
+    extension === '.png' ? 'image/png' : 
+    extension === '.webp' ? 'image/webp' :
+    extension === '.heic' ? 'image/heic' :
+    extension === '.heif' ? 'image/heif' :
+    'image/jpeg'; // Default to jpeg for jpg and others
   
   const data = fs.readFileSync(filePath);
   return {
@@ -85,14 +56,14 @@ router.post('/chat', express.json(), (req: Request, res: Response, next: NextFun
         return res.status(400).json({ error: 'No message provided' });
       }
 
-      // Get the Gemini model
+      // Get the Gemini model - updated to newer version
       const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
       });
 
-      // Generate configuration with valid parameters
+      // Updated generation config with more parameters
       const generationConfig = {
-        temperature: 1,
+        temperature: 0.8,
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
@@ -147,14 +118,14 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
         }
       }
 
-      // Get the Gemini Pro Vision model
+      // Get the Gemini Pro Vision model - updated to more advanced model
       const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.0-pro',
       });
 
-      // Generate configuration with valid parameters
+      // Enhanced generation config for better image analysis
       const generationConfig = {
-        temperature: 0.7,
+        temperature: 0.4, // Lower temperature for more accurate analysis
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
@@ -164,6 +135,7 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       const imagePart = await fileToGenerativePart(imagePath);
       
       // Create a prompt that includes Roboflow prediction data if available
+      // Enhanced prompt with image understanding techniques mentioned in documentation
       let prompt = `
       Analyze this 3D print image and determine if it shows a failed print.
 
@@ -174,16 +146,18 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       Issue Type: [Describe the specific type of failure or quality assessment]
 
       Potential Causes:
-      - [Cause 1]
-      - [Cause 2]
-      - [Add more causes as needed]
+      • [Cause 1]
+      • [Cause 2]
+      • [Cause 3]
 
       Recommended Fixes:
-      - [Fix 1]
-      - [Fix 2]
-      - [Add more fixes as needed]
+      • [Fix 1]
+      • [Fix 2]
+      • [Fix 3]
 
       Severity: [Rate on a scale of 1-10, with 10 being the most severe]
+
+      Affected Areas: [Describe specific regions of the print with issues, using top/bottom/left/right descriptors]
 
       Additional Notes: [Any other observations that don't fit above]
       `;
@@ -197,16 +171,24 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
         
         predictionData.predictions.forEach((prediction: any, index: number) => {
           prompt += `
-      ${index + 1}. ${prediction.class} (confidence: ${Math.round(prediction.confidence * 100)}%)`;
+      • ${prediction.class} (confidence: ${Math.round(prediction.confidence * 100)}%)`;
           
           if (prediction.position) {
-            prompt += ` - Located at position: left=${prediction.position.left}%, top=${prediction.position.top}%, width=${prediction.position.width}%, height=${prediction.position.height}%`;
+            // Using normalized bbox coordinates (0-1000) as mentioned in the documentation
+            const normalizedBox = {
+              ymin: Math.round(prediction.position.top * 10),
+              xmin: Math.round(prediction.position.left * 10),
+              ymax: Math.round((prediction.position.top + prediction.position.height) * 10),
+              xmax: Math.round((prediction.position.left + prediction.position.width) * 10)
+            };
+            
+            prompt += ` - Located at position: [${normalizedBox.ymin}, ${normalizedBox.xmin}, ${normalizedBox.ymax}, ${normalizedBox.xmax}] (normalized to 0-1000 scale)`;
           }
         });
         
         prompt += `
         
-      Please take these detected issues into account in your analysis. Use them as guidance, but feel free to identify other issues you can see in the image.
+      Please take these detected issues into account in your analysis. Use them as guidance, but feel free to identify other issues you can see in the image. For each issue, try to describe its location in the image accurately.
       `;
       }
       
@@ -217,9 +199,10 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       If the print has FAILED:
       1. In the "Confirmation" section: Write ONLY "The print has failed."
       2. In the "Issue Type" section: Be SPECIFIC about the type of failure (e.g., stringing, layer shifting, warping)
-      3. List at least 3 potential causes, each on a new line with a dash (-)
-      4. List at least 3 recommended fixes, each on a new line with a dash (-)
+      3. List at least 3 potential causes, using bullet points (•) NOT dashes (-)
+      4. List at least 3 recommended fixes, using bullet points (•) NOT dashes (-)
       5. Rate severity from 7-10 if it's a severe failure
+      6. In "Affected Areas", precisely describe where the issues are located
 
       If the print is ACCEPTABLE:
       1. In the "Confirmation" section: Write ONLY "The print is acceptable."
@@ -227,14 +210,15 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       3. List any potential improvements in the causes section
       4. List optional enhancements in the fixes section
       5. Rate severity from 1-3 for minor issues
+      6. In "Affected Areas", mention any regions that could be improved, if any
 
       IMPORTANT FORMATTING RULES:
       - Keep the exact headers as shown: "Confirmation:", "Issue Type:", etc.
-      - Use dashes (-) at the start of each bullet point
+      - Use bullet points (•) for each list item, NOT dashes (-)
       - Keep each bullet point on a separate line
       - Be concise but thorough
       - For the severity, just write the number (1-10)
-      - Do not add any other sections beyond what is specified
+      - Be specific about locations - use terms like top-left, bottom-right, center, etc.
 
       Your response will be parsed by a computer program, so strict adherence to this format is essential.
       `;
@@ -243,14 +227,17 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
 
       // Send the image to Gemini with the prompt
       const result = await model.generateContent([prompt, imagePart]);
+      
       const response = result.response.text();
       
       console.log('Received response from Gemini');
       
-      // Return the analysis
+      // Return the analysis with enhanced response
       res.status(200).json({ 
         response,
-        imageUrl: `/uploads/${path.basename(imagePath)}` // Return the URL to the saved image
+        imageUrl: `/uploads/${path.basename(imagePath)}`, // Return the URL to the saved image
+        analysisTimestamp: new Date().toISOString(),
+        modelVersion: 'gemini-2.0-pro'
       });
       
     } catch (error) {
@@ -264,4 +251,76 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
   })().catch(next);
 });
 
-export const geminiRoutes = router; 
+/**
+ * @route POST /api/gemini/segment-print
+ * @desc Segment a 3D print image and provide detailed object analysis with masks
+ * @access Public
+ */
+router.post('/segment-print', upload.single('image'), (req: Request, res: Response, next: NextFunction) => {
+  (async () => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+
+      // Get the uploaded file path
+      const imagePath = req.file.path;
+
+      // Use Gemini 2.5 for segmentation capabilities
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-pro',
+      });
+
+      // Convert image to format Gemini can use
+      const imagePart = await fileToGenerativePart(imagePath);
+      
+      // Create prompt for segmentation
+      const prompt = `
+      Give the segmentation masks for any failures or defects in this 3D print.
+      Output a JSON list of segmentation masks where each entry contains:
+      1. The 2D bounding box in the key "box_2d" in format [ymin, xmin, ymax, xmax] normalized to 0-1000
+      2. The segmentation mask in key "mask" 
+      3. The text label in the key "label" describing the specific type of defect
+      4. A "confidence" value between 0 and 1
+      5. A "description" key with a brief explanation of the issue
+
+      Use descriptive labels for the specific 3D printing issues (e.g., "layer_shift", "stringing", "warping").
+      If no defects are found, return an empty list.
+      `;
+
+      // Send the image to Gemini with the segmentation prompt
+      const result = await model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              imagePart
+            ]
+          }
+        ]
+      });
+      
+      const response = result.response.text();
+      
+      console.log('Received segmentation response from Gemini');
+      
+      // Return the segmentation analysis
+      res.status(200).json({ 
+        response,
+        imageUrl: `/uploads/${path.basename(imagePath)}`,
+        modelVersion: 'gemini-2.5-pro'
+      });
+      
+    } catch (error) {
+      console.error('Error processing 3D print segmentation request:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        error: 'Failed to perform segmentation on 3D print image',
+        details: errorMessage 
+      });
+    }
+  })().catch(next);
+});
+
+export const geminiRoutes = router;

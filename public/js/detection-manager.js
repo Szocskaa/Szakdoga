@@ -552,9 +552,9 @@ class DetectionManager {
             chatSidebarMessages.scrollTop = chatSidebarMessages.scrollHeight;
           }
           
-          // Now analyze the image with the roboflow results
+          // Now analyze the image with the roboflow results, but set a flag to prevent duplicate image display
           console.log('Calling analyzeImage with captured frame and Roboflow predictions');
-          await window.analyzeImage(file, roboflowResults.predictions || null);
+          await window.analyzeImageWithoutDuplicatingImage(file, roboflowResults.predictions || null);
         } else {
           // Fallback to the old method if analyzeImage is not available
           console.log('analyzeImage function not available, using fallback method');
