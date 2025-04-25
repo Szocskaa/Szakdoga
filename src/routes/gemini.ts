@@ -9,7 +9,6 @@ dotenv.config();
 
 const router = express.Router();
 
-// Environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 if (!GEMINI_API_KEY) {
@@ -17,21 +16,18 @@ if (!GEMINI_API_KEY) {
   console.log('Please check that your .env file contains the GEMINI_API_KEY variable');
 }
 
-// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Helper function to read image as base64
 async function fileToGenerativePart(filePath: string): Promise<{
   inlineData: { data: string, mimeType: string }
 }> {
   const extension = path.extname(filePath).toLowerCase();
-  // Support more image formats based on documentation
   const mimeType = 
     extension === '.png' ? 'image/png' : 
     extension === '.webp' ? 'image/webp' :
     extension === '.heic' ? 'image/heic' :
     extension === '.heif' ? 'image/heif' :
-    'image/jpeg'; // Default to jpeg for jpg and others
+    'image/jpeg'; 
   
   const data = fs.readFileSync(filePath);
   return {
@@ -56,12 +52,10 @@ router.post('/chat', express.json(), (req: Request, res: Response, next: NextFun
         return res.status(400).json({ error: 'No message provided' });
       }
 
-      // Get the Gemini model - updated to newer version
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.0-flash',
       });
 
-      // Updated generation config with more parameters
       const generationConfig = {
         temperature: 0.8,
         topP: 0.95,
@@ -69,17 +63,16 @@ router.post('/chat', express.json(), (req: Request, res: Response, next: NextFun
         maxOutputTokens: 8192,
       };
 
-      // Create a chat session
       const chatSession = model.startChat({
         generationConfig,
         history: [],
       });
 
-      // Send message to Gemini
+      // Send 
       const result = await chatSession.sendMessage(message);
       const response = result.response.text();
       
-      // Return the chat response
+      // Return 
       res.status(200).json({ response });
     } catch (error) {
       console.error('Error processing Gemini chat request:', error);
@@ -104,10 +97,8 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
         return res.status(400).json({ error: 'No image file provided' });
       }
 
-      // Get the uploaded file path
       const imagePath = req.file.path;
       
-      // Get Roboflow prediction data if available
       let predictionData = null;
       if (req.body.predictions) {
         try {
@@ -118,24 +109,20 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
         }
       }
 
-      // Get the Gemini Pro Vision model - updated to more advanced model
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.0-pro',
       });
 
-      // Enhanced generation config for better image analysis
+      // gen config
       const generationConfig = {
-        temperature: 0.4, // Lower temperature for more accurate analysis
+        temperature: 0.4, // Low temp. -> more accurate analysis
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
       };
 
-      // Convert image to format Gemini can use
       const imagePart = await fileToGenerativePart(imagePath);
       
-      // Create a prompt that includes Roboflow prediction data if available
-      // Enhanced prompt with image understanding techniques mentioned in documentation
       let prompt = `
       Analyze this 3D print image and determine if it shows a failed print.
 
@@ -162,7 +149,7 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       Additional Notes: [Any other observations that don't fit above]
       `;
       
-      // Add prediction information if available
+      // + roboflow prediction
       if (predictionData && predictionData.predictions && predictionData.predictions.length > 0) {
         prompt += `
         
@@ -174,7 +161,7 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       • ${prediction.class} (confidence: ${Math.round(prediction.confidence * 100)}%)`;
           
           if (prediction.position) {
-            // Using normalized bbox coordinates (0-1000) as mentioned in the documentation
+            // normalized bbox coordinates (0-1000) --- documentation
             const normalizedBox = {
               ymin: Math.round(prediction.position.top * 10),
               xmin: Math.round(prediction.position.left * 10),
@@ -232,12 +219,11 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
       
       console.log('Received response from Gemini');
       
-      // Return the analysis with enhanced response
       res.status(200).json({ 
         response,
-        imageUrl: `/uploads/${path.basename(imagePath)}`, // Return the URL to the saved image
+        imageUrl: `/uploads/${path.basename(imagePath)}`,
         analysisTimestamp: new Date().toISOString(),
-        modelVersion: 'gemini-2.0-pro'
+        modelVersion: 'gemini-1'
       });
       
     } catch (error) {
@@ -251,76 +237,5 @@ router.post('/analyze-print', upload.single('image'), (req: Request, res: Respon
   })().catch(next);
 });
 
-/**
- * @route POST /api/gemini/segment-print
- * @desc Segment a 3D print image and provide detailed object analysis with masks
- * @access Public
- */
-router.post('/segment-print', upload.single('image'), (req: Request, res: Response, next: NextFunction) => {
-  (async () => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No image file provided' });
-      }
-
-      // Get the uploaded file path
-      const imagePath = req.file.path;
-
-      // Use Gemini 2.5 for segmentation capabilities
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-pro',
-      });
-
-      // Convert image to format Gemini can use
-      const imagePart = await fileToGenerativePart(imagePath);
-      
-      // Create prompt for segmentation
-      const prompt = `
-      Give the segmentation masks for any failures or defects in this 3D print.
-      Output a JSON list of segmentation masks where each entry contains:
-      1. The 2D bounding box in the key "box_2d" in format [ymin, xmin, ymax, xmax] normalized to 0-1000
-      2. The segmentation mask in key "mask" 
-      3. The text label in the key "label" describing the specific type of defect
-      4. A "confidence" value between 0 and 1
-      5. A "description" key with a brief explanation of the issue
-
-      Use descriptive labels for the specific 3D printing issues (e.g., "layer_shift", "stringing", "warping").
-      If no defects are found, return an empty list.
-      `;
-
-      // Send the image to Gemini with the segmentation prompt
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              imagePart
-            ]
-          }
-        ]
-      });
-      
-      const response = result.response.text();
-      
-      console.log('Received segmentation response from Gemini');
-      
-      // Return the segmentation analysis
-      res.status(200).json({ 
-        response,
-        imageUrl: `/uploads/${path.basename(imagePath)}`,
-        modelVersion: 'gemini-2.5-pro'
-      });
-      
-    } catch (error) {
-      console.error('Error processing 3D print segmentation request:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ 
-        error: 'Failed to perform segmentation on 3D print image',
-        details: errorMessage 
-      });
-    }
-  })().catch(next);
-});
 
 export const geminiRoutes = router;

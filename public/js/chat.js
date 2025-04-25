@@ -1,68 +1,60 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // Chat functionality
+
   const chatSidebarInput = document.getElementById('chatSidebarInput');
   const chatSidebarMessages = document.getElementById('chatSidebarMessages');
   const sendSidebarButton = document.getElementById('sendSidebarButton');
-  
-  // Add event listeners for chat functionality  
+
   sendSidebarButton.addEventListener('click', () => sendChatMessage());
-  
+
   chatSidebarInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       sendChatMessage();
     }
   });
-  
-  // Chat message sending function
+
   async function sendChatMessage() {
     console.log('sendChatMessage function called');
-    
-    // Get the chat input element - only use chatSidebarInput as that's what exists in the HTML
+
     const chatInput = document.getElementById('chatSidebarInput');
-    
-    // Get the chat messages container - only use chatSidebarMessages as that's what exists in the HTML
+
     const chatMessages = document.getElementById('chatSidebarMessages');
-    
+
     console.log('chatInput:', chatInput);
     console.log('chatMessages:', chatMessages);
-    
+
     if (!chatInput || !chatMessages) {
       console.error('Chat input or messages element not found');
       return;
     }
-    
+
     const message = chatInput.value.trim();
     console.log('Message to send:', message);
-    
+
     if (!message) {
       console.log('Empty message, not sending');
       return;
     }
-    
-    // Add user message
+
     chatMessages.innerHTML += `
       <div class="message user-message">
         ${window.escapeHtml ? window.escapeHtml(message) : message}
       </div>
     `;
-    
-    // Clear input
+
     chatInput.value = '';
-    
-    // Scroll to bottom
+
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     try {
-      // Show loading indicator
+
       chatMessages.innerHTML += `
         <div class="message ai-message" id="ai-loading">
           Thinking...
         </div>
       `;
-      
+
       console.log('Sending API request to Gemini');
-      
-      // Send to backend
+
       const response = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: {
@@ -70,107 +62,90 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         body: JSON.stringify({ message }),
       });
-      
+
       console.log('API response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response from API:', errorText);
         throw new Error(`Failed to get response from AI: ${response.status} ${errorText}`);
       }
-      
+
       const data = await response.json();
       console.log('API response data:', data);
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Add AI response with markdown formatting but not the table style (false param)
+
       const formattedResponse = formatMarkdown(data.response || '', false);
       chatMessages.innerHTML += `
         <div class="message ai-message">
           ${formattedResponse}
         </div>
       `;
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
     } catch (error) {
       console.error('Error sending message:', error);
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Show error message
+
       chatMessages.innerHTML += `
         <div class="message ai-message error">
           Sorry, I couldn't process your message. Please try again. Error: ${error.message}
         </div>
       `;
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   }
-  
-  // Helper function to format markdown-like text
+
   function formatMarkdown(text, isImageAnalysis = false) {
     if (!text) return '';
-    
-    // For image analysis responses, use a special structured format
+
     if (isImageAnalysis) {
       return formatImageAnalysis(text);
     }
-    
-    // Regular formatting for normal chat messages
+
     text = text.replace(/^#\s+(.*?)$/gm, '<h3>$1</h3>');
     text = text.replace(/^##\s+(.*?)$/gm, '<h4>$1</h4>');
     text = text.replace(/^###\s+(.*?)$/gm, '<h5>$1</h5>');
-    
-    // Format bold
+
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
-    
-    // Format italic
+
     text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
     text = text.replace(/_(.*?)_/g, '<em>$1</em>');
-    
-    // Format bullet points - capture and remove the dash/hyphen completely
+
     text = text.replace(/^\s*-\s+(.*?)$/gm, '<li>$1</li>');
     text = text.replace(/^\s*•\s+(.*?)$/gm, '<li>$1</li>');
     text = text.replace(/^([0-9]+)\.\s+(.*?)$/gm, '<li>$1. $2</li>');
-    
-    // Replace line breaks with <br>
+
     text = text.replace(/\n\n/g, '<br>');
-    
-    // Enclose any sequence of <li> elements with <ul>
+
     text = text.replace(/(<li>.*?<\/li>)+/g, function(match) {
       return '<ul>' + match + '</ul>';
     });
-    
+
     return text;
   }
-  
-  // Function to format image analysis into a structured visual layout
+
   function formatImageAnalysis(text) {
     console.log('Raw analysis text:', text);
-    
-    // Determine if it's a failure, success, or uncertain result
+
     let status = 'uncertain';
     let statusColor = 'var(--warning-color)';
     let statusText = 'Analysis Uncertain';
-    
-    // Check for confirmation section first
+
     const confirmationMatch = text.match(/confirmation\s*:\s*([^\n]+)/i);
     if (confirmationMatch && confirmationMatch[1]) {
       const confirmationText = confirmationMatch[1].trim().toLowerCase();
-      
+
       if (confirmationText.includes('failed') || 
           confirmationText.includes('failure') || 
           confirmationText.includes('not acceptable')) {
@@ -185,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statusText = 'Print Quality Acceptable';
       }
     } else {
-      // Fallback to general text scanning if no confirmation section
+
       if (text.toLowerCase().includes('failed') || 
           text.toLowerCase().includes('failure') || 
           text.toLowerCase().includes('issue') || 
@@ -202,20 +177,19 @@ document.addEventListener('DOMContentLoaded', function() {
         statusText = 'Print Quality Acceptable';
       }
     }
-    
-    // Extract failure type or quality assessment from the issue type section
+
     let failureType = '';
     const issueTypeMatch = text.match(/issue\s+type\s*:\s*([^\n]+)/i);
     if (issueTypeMatch && issueTypeMatch[1]) {
       failureType = issueTypeMatch[1].trim();
     } else {
-      // Fallbacks if issue type isn't clearly marked
+
       const failureTypeRegex = /(?:failure|issue|problem)(?:\s+type)?(?:\s*:)?\s*([^\n.]+)/i;
       const failureMatch = text.match(failureTypeRegex);
       if (failureMatch && failureMatch[1]) {
         failureType = failureMatch[1].trim();
       } else {
-        // If no explicit failure type, try to find a quality description
+
         const qualityRegex = /quality(?:\s+is)?(?:\s*:)?\s*([^\n.]+)/i;
         const qualityMatch = text.match(qualityRegex);
         if (qualityMatch && qualityMatch[1]) {
@@ -225,8 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
-    
-    // Map common 3D printing issues to reference guide categories
+
     const issueMap = {
       'stringing': { name: 'Stringing', index: 12 },
       'oozing': { name: 'Stringing', index: 12 },
@@ -249,8 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
       'mid-air': { name: 'Beginning mid-air', index: 4 },
       'offset': { name: 'Shift in layers', index: 11 }
     };
-    
-    // Determine the relevant issue category from our reference guide
+
     let issueCategory = null;
     const lowerFailureType = failureType.toLowerCase();
     for (const [key, value] of Object.entries(issueMap)) {
@@ -259,74 +231,64 @@ document.addEventListener('DOMContentLoaded', function() {
         break;
       }
     }
-    
-    // Extract potential causes
+
     let causes = [];
-    // Look for the exact "Potential Causes:" section first
+
     const causesStartMatch = text.match(/potential\s+causes\s*:\s*\n/i);
     if (causesStartMatch) {
-      // Find where the causes section starts
+
       const startIndex = causesStartMatch.index + causesStartMatch[0].length;
-      
-      // Find where the causes section might end (next section or end of text)
+
       let endIndex = text.indexOf('Recommended Fixes', startIndex);
       if (endIndex === -1) endIndex = text.indexOf('Severity', startIndex);
       if (endIndex === -1) endIndex = text.length;
-      
-      // Extract the causes section
+
       const causesSection = text.substring(startIndex, endIndex).trim();
-      
-      // Split by bullet points or numbers
+
       causes = causesSection.split(/\n\s*-\s*|\n\s*\d+\.\s*/)
         .map(cause => cause.trim())
         .filter(cause => cause.length > 0);
     } else {
-      // Fallback to look for different patterns of cause descriptions
+
       let causesSection = text.match(/(?:causes|potential causes|reasons|why this happened)(?:\s*:)?\s*([\s\S]*?)(?=\n\s*\n|recommended fixes|severity|fix|suggest|action|$)/i);
       if (causesSection && causesSection[1]) {
-        // Split by bullet points or numbers
+
         let causesList = causesSection[1].split(/\n\s*[-*•]|\n\s*\d+\.\s+/);
         causes = causesList.filter(cause => cause.trim()).map(cause => cause.trim());
       }
     }
-    
-    // Extract fixes/suggestions
+
     let fixes = [];
-    // Look for the exact "Recommended Fixes:" section first
+
     const fixesStartMatch = text.match(/recommended\s+fixes\s*:\s*\n/i);
     if (fixesStartMatch) {
-      // Find where the fixes section starts
+
       const startIndex = fixesStartMatch.index + fixesStartMatch[0].length;
-      
-      // Find where the fixes section might end (next section or end of text)
+
       let endIndex = text.indexOf('Severity', startIndex);
       if (endIndex === -1) endIndex = text.length;
-      
-      // Extract the fixes section
+
       const fixesSection = text.substring(startIndex, endIndex).trim();
-      
-      // Split by bullet points or numbers
+
       fixes = fixesSection.split(/\n\s*-\s*|\n\s*\d+\.\s*/)
         .map(fix => fix.trim())
         .filter(fix => fix.length > 0);
     } else {
-      // Fallback to look for different patterns of fix descriptions
+
       let fixesSection = text.match(/(?:solutions|fixes|recommendations|how to fix|action|suggested)(?:\s*:)?\s*([\s\S]*?)(?=\n\s*\n|severity|causes|$)/i);
       if (fixesSection && fixesSection[1]) {
         let fixesList = fixesSection[1].split(/\n\s*[-*•]|\n\s*\d+\.\s+/);
         fixes = fixesList.filter(fix => fix.trim()).map(fix => fix.trim());
       }
     }
-    
-    // Extract severity (if available)
+
     let severity = '';
     let severityScore = '';
-    
-    // Look for the exact "Severity:" section first
+
     const severityMatch = text.match(/severity\s*:\s*(\d+)(?:\s*\/\s*10)?/i);
     if (severityMatch && severityMatch[1]) {
       severityScore = parseInt(severityMatch[1]);
-      
+
       if (severityScore >= 8) {
         severity = 'High';
       } else if (severityScore >= 4) {
@@ -341,20 +303,18 @@ document.addEventListener('DOMContentLoaded', function() {
       severity = 'None';
       severityScore = '0';
     }
-    
-    // Build the HTML structure for the analysis
+
     let html = `
       <div class="analysis-container">
         <div class="analysis-header" style="background-color: ${statusColor}">
           <h3>${statusText}</h3>
         </div>
-        
+
         <div class="analysis-content">
           <div class="analysis-section">
             <h4>Issue Assessment</h4>
             <p class="assessment-text">${failureType}</p>`;
-            
-    // Add reference information if we have a matching issue category
+
     if (issueCategory) {
       html += `
             <div class="reference-link">
@@ -369,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </a>
             </div>`;
     }
-    
+
     html += `
             <div class="info-link">
               <a href="https://realvisiononline.com/blog/the-12-most-common-problems-in-3d-printing-and-how-to-fix-them" target="_blank">
@@ -382,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </a>
             </div>
           </div>
-          
+
           <div class="analysis-section">
             <h4>Potential Causes</h4>
             <ul class="analysis-list">
@@ -391,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<li>No specific causes identified</li>'}
             </ul>
           </div>
-          
+
           <div class="analysis-section">
             <h4>Recommended Fixes</h4>
             <ul class="analysis-list">
@@ -400,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<li>No specific fixes suggested</li>'}
             </ul>
           </div>
-          
+
           <div class="analysis-section severity-section">
             <h4>Severity Assessment</h4>
             <div class="severity-display">
@@ -416,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </div>
         </div>
-        
+
         <div class="analysis-footer">
           <div class="analysis-note">
             <p>For a detailed explanation, ask follow-up questions in the chat</p>
@@ -424,32 +384,28 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
     `;
-    
+
     return html;
   }
-  
-  // Function to handle 3D print image analysis
+
   async function analyzeImage(file, predictionData = null) {
     console.log('analyzeImage function called with file:', file);
     if (predictionData) {
       console.log('Prediction data provided:', predictionData);
     }
-    
-    // Only use chatSidebarMessages as that's what exists in the HTML
+
     const chatMessages = document.getElementById('chatSidebarMessages');
-      
+
     if (!chatMessages) {
       console.error('Chat messages element not found');
       return;
     }
-    
-    // Check if there's already an analysis in progress
+
     if (document.getElementById('ai-loading')) {
       console.log('Analysis already in progress, not starting a new one');
       return;
     }
-    
-    // Show the image in chat
+
     const imagePreview = URL.createObjectURL(file);
     chatMessages.innerHTML += `
       <div class="message user-message">
@@ -457,210 +413,181 @@ document.addEventListener('DOMContentLoaded', function() {
         <div>Analyzing this 3D print${predictionData ? ' with Roboflow predictions' : ''}...</div>
       </div>
     `;
-    
-    // Show loading indicator
+
     chatMessages.innerHTML += `
       <div class="message ai-message" id="ai-loading">
         <div class="loading-text">Analyzing your 3D print failure...</div>
       </div>
     `;
-    
-    // Scroll to bottom
+
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     try {
       const formData = new FormData();
       formData.append('image', file);
-      
-      // Add prediction data if available
+
       if (predictionData) {
         formData.append('predictions', JSON.stringify(predictionData));
       }
-      
+
       console.log('Sending 3D print image for analysis to Gemini');
-      
-      // Send to backend
+
       const response = await fetch('/api/gemini/analyze-print', {
         method: 'POST',
         body: formData,
       });
-      
+
       console.log('Gemini analyze print response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error analyzing image with Gemini:', errorText);
         throw new Error(`Failed to analyze image: ${response.status} ${errorText}`);
       }
-      
+
       const data = await response.json();
       console.log('Gemini analysis response data:', data);
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Add AI response with advanced formatting for image analysis
+
       const formattedResponse = formatMarkdown(data.response || '', true);
       chatMessages.innerHTML += `
         <div class="message ai-message">
           ${formattedResponse}
         </div>
       `;
-      
-      // Trigger animation for severity bar
+
       setTimeout(() => {
         const severityFills = document.querySelectorAll('.severity-fill');
         severityFills.forEach(fill => {
           fill.style.animation = 'none';
-          fill.offsetHeight; // Force reflow
+          fill.offsetHeight; 
           fill.style.animation = null;
         });
       }, 100);
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
     } catch (error) {
       console.error('Error analyzing image with Gemini:', error);
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Show error message
+
       chatMessages.innerHTML += `
         <div class="message ai-message error">
           Sorry, I couldn't analyze the image. Please try again. Error: ${error.message}
         </div>
       `;
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   }
-  
-  // Export the formatMarkdown function to the global scope
+
   window.formatMarkdown = formatMarkdown;
-  
-  // Export the analyzeImage function to the global scope
+
   window.analyzeImage = analyzeImage;
-  
-  // Create a version of analyzeImage that doesn't show the image again (for detection-manager.js)
+
   window.analyzeImageWithoutDuplicatingImage = async function(file, predictionData = null) {
     console.log('analyzeImageWithoutDuplicatingImage called - preventing duplicate image display');
-    
-    // Only use chatSidebarMessages as that's what exists in the HTML
+
     const chatMessages = document.getElementById('chatSidebarMessages');
-      
+
     if (!chatMessages) {
       console.error('Chat messages element not found');
       return;
     }
-    
-    // Check if there's already an analysis in progress
+
     if (document.getElementById('ai-loading')) {
       console.log('Analysis already in progress, not starting a new one');
       return;
     }
-    
-    // Show loading indicator (but skip showing the image again)
+
     chatMessages.innerHTML += `
       <div class="message ai-message" id="ai-loading">
         <div class="loading-text">Analyzing your 3D print failure...</div>
       </div>
     `;
-    
-    // Scroll to bottom
+
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     try {
-      // Create a FormData object to send to the server
+
       const formData = new FormData();
       formData.append('image', file);
-      
-      // Add prediction data if available
+
       if (predictionData) {
         formData.append('predictions', JSON.stringify(predictionData));
       }
-      
-      // Send to backend for analysis
+
       const response = await fetch('/api/gemini/analyze-print', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Format and display the analysis
+
       const formattedAnalysis = formatImageAnalysis(data.response);
-      
-      // Add the AI response
+
       chatMessages.innerHTML += `
         <div class="message ai-message">
           ${formattedAnalysis}
         </div>
       `;
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
-      
+
       return data;
     } catch (error) {
       console.error('Error analyzing image with Gemini:', error);
-      
-      // Remove loading indicator
+
       const loadingMessage = document.getElementById('ai-loading');
       if (loadingMessage) {
         loadingMessage.remove();
       }
-      
-      // Show error message
+
       chatMessages.innerHTML += `
         <div class="message ai-message error">
           Sorry, I couldn't analyze the image. Please try again. Error: ${error.message}
         </div>
       `;
-      
-      // Scroll to bottom
+
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   };
-  
-  // Create a wrapper function for detection-manager.js to use
+
   window.analyzeWithGemini = async function(imageFile) {
     console.log('analyzeWithGemini called from detection-manager');
-    
+
     try {
       const formData = new FormData();
       formData.append('image', imageFile);
-      
-      // Send directly to backend for analysis
+
       const response = await fetch('/api/gemini/analyze-print', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to analyze image: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Gemini analysis completed successfully');
-      
+
       return {
         analysis: data.response,
         imageUrl: data.imageUrl,
@@ -668,15 +595,14 @@ document.addEventListener('DOMContentLoaded', function() {
       };
     } catch (error) {
       console.error('Error in analyzeWithGemini:', error);
-      // Return empty results on error
+
       return {
         analysis: 'Analysis failed: ' + error.message,
         time: new Date().toISOString()
       };
     }
   };
-  
-  // Ensure escapeHtml function exists
+
   if (!window.escapeHtml) {
     window.escapeHtml = function(unsafe) {
       if (!unsafe) return '';
@@ -689,4 +615,4 @@ document.addEventListener('DOMContentLoaded', function() {
         .replace(/'/g, "&#039;");
     };
   }
-}); 
+});

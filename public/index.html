@@ -37,7 +37,7 @@
     <main>
       <div class="main-content-wrapper">
         <div class="left-column">
-          <!-- Primary Monitoring Interface -->
+          
           <div class="prism-card monitoring-card">
             <h2 class="card-title">Print Monitoring</h2>
             <button class="settings-toggle" id="settingsToggle" title="Settings">
@@ -73,14 +73,14 @@
                       Stop
                     </button>
                   </div>
-                  <!-- The activity log and toggle will be dynamically injected by JS -->
+                  
                 </div>
-                <!-- The flash overlay will be injected here by JS -->
+                
               </div>
             </div>
           </div>
 
-          <!-- Secondary Upload Interface -->
+          
           <div class="prism-card upload-card">
             <h2 class="card-title">Manual Analysis</h2>
             <p class="card-subtitle">Upload an image or capture from webcam for one-time analysis</p>
@@ -176,7 +176,7 @@
     </main>
   </div>
 
-  <!-- WebGL Shaders -->
+  
   <script id="js-vertex-shader" type="x-shader/x-vertex">
     attribute vec3 position;
     
@@ -228,7 +228,7 @@
     }
   </script>
   
-  <!-- Application Scripts -->
+  
   <script src="js/effects.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/detection.js"></script>
@@ -236,7 +236,7 @@
   <script src="js/monitoring.js"></script>
   <script src="js/detection-manager.js"></script>
 
-  <!-- Floating AI Assistant Button -->
+  
   <button id="aiAssistantButton" class="ai-assistant-button">
     <div class="ai-button-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -248,7 +248,7 @@
     <span>AI Assistant</span>
   </button>
   
-  <!-- Fullscreen Chat Overlay -->
+  
   <div id="fullscreenChatOverlay" class="fullscreen-chat-overlay">
     <div id="fullscreenChatContainer" class="fullscreen-chat-container">
       <div class="chat-header">
@@ -282,9 +282,9 @@
     </div>
   </div>
   
-  <!-- Hidden file input for fullscreen upload -->
+  
   <input type="file" id="fullscreenFileInput" style="display: none;" accept="image/*">
 
   <script src="js/ai-assistant.js"></script>
 </body>
-</html> 
+</html>

@@ -1,5 +1,5 @@
 :root {
-  /* Dark Theme (Default) */
+  
   --glass-bg: rgba(30, 30, 40, 0.7);
   --glass-border: rgba(255, 255, 255, 0.2);
   --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
@@ -13,7 +13,7 @@
   --border-highlight: #fff;
   --item-marker: #fff;
   
-  /* Analysis table colors */
+  
   --error-color: rgba(200, 60, 60, 0.9);
   --warning-color: rgba(200, 150, 40, 0.9);
   --success-color: rgba(60, 180, 60, 0.9);
@@ -22,7 +22,7 @@
 }
 
 [data-theme="light"] {
-  /* Light Theme */
+  
   --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(0, 0, 0, 0.1);
   --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
@@ -36,7 +36,7 @@
   --border-highlight: #333;
   --item-marker: #333;
   
-  /* Analysis table colors for light theme */
+  
   --error-color: rgba(220, 80, 80, 0.9);
   --warning-color: rgba(230, 170, 50, 0.9);
   --success-color: rgba(70, 190, 70, 0.9);
@@ -92,12 +92,10 @@ body {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Remove the existing after pseudo-element */
 .logo::after {
   display: none;
 }
 
-/* Title layers styling */
 .title-layer {
   position: absolute;
   top: 0;
@@ -144,7 +142,6 @@ body {
   color: rgba(0, 128, 255, 0.95);
 }
 
-/* Add glow effect to enhance colors */
 [data-theme="dark"] .title-layer-red,
 [data-theme="dark"] .subtitle-layer-red {
   text-shadow: 0 0 8px rgba(255, 0, 85, 0.5);
@@ -160,7 +157,6 @@ body {
   text-shadow: 0 0 8px rgba(0, 153, 255, 0.5);
 }
 
-/* Subtitle effect styling */
 .subtitle {
   font-size: 1.1rem;
   font-weight: 400;
@@ -218,7 +214,6 @@ body {
   color: rgba(0, 128, 255, 0.95);
 }
 
-/* Ensure mobile compatibility for the title effect */
 @media (max-width: 768px) {
   .logo {
     height: auto;
@@ -251,7 +246,6 @@ body {
   }
 }
 
-/* Theme Toggle Button */
 .theme-toggle-container {
   position: fixed;
   top: 20px;
@@ -304,7 +298,6 @@ body {
   z-index: 1;
 }
 
-/* Prism-like card styles */
 .prism-card {
   background: var(--glass-bg);
   border-radius: 8px;
@@ -362,7 +355,6 @@ body {
   background: var(--border-highlight);
 }
 
-/* Upload section styles */
 .upload-area {
   border: 1px dashed var(--glass-border);
   border-radius: 8px;
@@ -419,7 +411,6 @@ body {
   display: inline-block;
 }
 
-/* Input method toggle */
 .input-method-toggle {
   display: flex;
   justify-content: center;
@@ -446,7 +437,6 @@ body {
   opacity: 1;
 }
 
-/* Webcam container */
 .webcam-container {
   border-radius: 8px;
   overflow: hidden;
@@ -458,7 +448,7 @@ body {
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 75%; /* 4:3 Aspect Ratio */
+  padding-bottom: 75%; 
   background: var(--upload-area-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
@@ -513,7 +503,6 @@ body {
   border-radius: 8px;
 }
 
-/* Button styles */
 .btn {
   background: var(--input-bg);
   color: var(--text-color);
@@ -558,7 +547,6 @@ body {
   padding: 16px 32px;
 }
 
-/* Results section styles */
 .results-header {
   display: flex;
   justify-content: space-between;
@@ -594,19 +582,17 @@ body {
 .image-container img {
   display: block;
   max-width: 100%;
-  max-height: 500px; /* Limit height of result images */
+  max-height: 500px; 
   height: auto;
-  margin: 0 auto; /* Center the image */
-  object-fit: contain; /* Maintain aspect ratio without stretching */
+  margin: 0 auto; 
+  object-fit: contain; 
 }
 
-/* Prediction list styles */
 .prediction-list {
   list-style: none;
   padding: 0;
 }
 
-/* Chat window styles */
 .chat-container {
   background: var(--glass-bg);
   border-radius: 8px;
@@ -639,7 +625,6 @@ body {
   position: relative;
 }
 
-/* Chat messages area */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -649,12 +634,11 @@ body {
   max-height: 65vh;
 }
 
-/* Message styling */
 .message {
   margin-bottom: 15px;
   padding: 12px 15px;
   border-radius: 10px;
-  max-width: 85%; /* Increased from 80% */
+  max-width: 85%; 
   line-height: 1.5;
   font-size: 15px;
   word-wrap: break-word;
@@ -674,7 +658,6 @@ body {
   border-bottom-left-radius: 2px;
 }
 
-/* Enhanced Chat Input */
 .chat-input-container {
   display: flex;
   border: 1px solid var(--glass-border);
@@ -745,7 +728,6 @@ body {
   flex: 1;
 }
 
-/* New page layout structure */
 .main-content-wrapper {
   display: flex;
   gap: 30px;
@@ -776,7 +758,6 @@ body {
   width: 100%;
 }
 
-/* Make the layout responsive */
 @media (max-width: 1400px) {
   .main-content-wrapper {
     justify-content: center;
@@ -812,7 +793,6 @@ body {
   }
 }
 
-/* Loading animation */
 .loading {
   display: flex;
   flex-direction: column;
@@ -836,14 +816,12 @@ body {
   border-top: 3px solid var(--border-highlight);
 }
 
-/* Loading spinner text */
 .loading .loading-text {
   font-size: 0.9rem;
   color: var(--text-color);
   opacity: 0.7;
 }
 
-/* AI message loading text */
 .ai-message .loading-text {
   margin: 10px 0;
   font-style: italic;
@@ -857,14 +835,12 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* No failures message */
 .no-failures {
   text-align: center;
   padding: 30px;
   color: var(--text-color);
 }
 
-/* Error message */
 .error-message {
   color: var(--text-color);
   padding: 20px;
@@ -874,7 +850,6 @@ body {
   background: var(--error-bg);
 }
 
-/* Bounding box styles */
 .bounding-box {
   position: absolute;
   border: 2px solid var(--border-highlight);
@@ -894,7 +869,6 @@ body {
   white-space: nowrap;
 }
 
-/* Confidence meter */
 .confidence-meter {
   display: flex;
   align-items: center;
@@ -917,7 +891,6 @@ body {
   border-radius: 4px;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .container {
     max-width: 95%;
@@ -982,7 +955,6 @@ body {
   }
 }
 
-/* Enhanced scrollbar for chat messages */
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -1001,9 +973,8 @@ body {
   background: var(--border-highlight);
 }
 
-/* Enhanced Chat Styling */
 .right-column {
-  width: auto; /* Remove fixed width */
+  width: auto; 
   transition: all 0.3s ease;
 }
 
@@ -1042,13 +1013,12 @@ body {
 }
 
 .chat-messages {
-  max-height: 70vh; /* Increased from 60vh */
+  max-height: 70vh; 
   overflow-y: auto;
   padding: 15px;
   width: 100%;
 }
 
-/* Message formatting */
 .message {
   margin-bottom: 15px;
   padding: 12px 15px;
@@ -1099,7 +1069,6 @@ body {
   margin-bottom: 10px;
 }
 
-/* Fullscreen mode styles */
 .right-column.fullscreen {
   position: fixed;
   top: 0;
@@ -1120,10 +1089,9 @@ body {
 }
 
 .right-column.fullscreen .chat-messages {
-  max-height: calc(100vh - 150px); /* Increased from 200px since we removed the bottom container */
+  max-height: calc(100vh - 150px); 
 }
 
-/* Responsive behavior */
 @media (max-width: 992px) {
   .right-column {
     width: 100%;
@@ -1132,12 +1100,12 @@ body {
 
 .image-preview {
   max-width: 100%;
-  max-height: 400px; /* Limit height */
+  max-height: 400px; 
   border-radius: 8px;
   margin: 10px 0;
   border: 1px solid var(--glass-border);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  object-fit: contain; /* Maintain aspect ratio */
+  object-fit: contain; 
 }
 
 .message img.image-preview {
@@ -1149,7 +1117,6 @@ body {
   margin: 10px auto;
 }
 
-/* Analysis Container Styles */
 .analysis-container {
   width: 100%;
   background: var(--glass-bg);
@@ -1157,9 +1124,9 @@ body {
   overflow: hidden;
   border: 1px solid var(--glass-border);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  margin: 15px auto; /* Center the container */
+  margin: 15px auto; 
   font-size: 14px;
-  max-width: 800px; /* Add maximum width on larger screens */
+  max-width: 800px; 
 }
 
 .analysis-header {
@@ -1341,7 +1308,6 @@ body {
   font-weight: 500;
 }
 
-/* Animation for severity bar */
 @keyframes fillBar {
   from { width: 0; }
 }
@@ -1350,7 +1316,6 @@ body {
   animation: fillBar 1s ease-out forwards;
 }
 
-/* Add styles for reference link and category badge */
 .reference-link {
   display: flex;
   align-items: center;
@@ -1389,7 +1354,6 @@ body {
   margin-left: 5px;
 }
 
-/* Add styles for AI Assistant floating button */
 .ai-assistant-button {
   position: fixed;
   bottom: 30px;
@@ -1452,7 +1416,6 @@ body {
   }
 }
 
-/* Fullscreen chat overlay */
 .fullscreen-chat-overlay {
   position: fixed;
   top: 0;
@@ -1526,7 +1489,6 @@ body {
   max-height: none;
 }
 
-/* Custom scrollbar for chat messages */
 .fullscreen-chat-container .chat-messages::-webkit-scrollbar {
   width: 8px;
 }
@@ -1586,7 +1548,6 @@ body {
   box-shadow: 0 0 10px rgba(200, 200, 210, 0.3);
 }
 
-/* Make upload button match send button */
 .fullscreen-chat-container .upload-image-btn,
 .fullscreen-chat-container .send-button {
   background: rgba(60, 60, 80, 0.7);
@@ -1615,7 +1576,6 @@ body {
   background: rgba(180, 180, 200, 0.7);
 }
 
-/* Message styling for fullscreen mode */
 .fullscreen-chat-container .message {
   margin-bottom: 20px;
   padding: 16px 20px;
@@ -1650,7 +1610,6 @@ body {
   background: rgba(220, 220, 230, 0.7);
 }
 
-/* Add a subtle indicator for AI messages */
 .fullscreen-chat-container .ai-message::before {
   content: '';
   position: absolute;
@@ -1664,7 +1623,6 @@ body {
   opacity: 0.7;
 }
 
-/* Make sure images in messages look nice */
 .fullscreen-chat-container .message img.image-preview {
   max-width: 100%;
   border-radius: 8px;
@@ -1694,7 +1652,6 @@ body {
   background: rgba(0, 0, 0, 0.1);
 }
 
-/* Additional loading text style for fullscreen mode */
 .fullscreen-chat-container .loading-text {
   margin: 10px 0;
   font-style: italic;
@@ -1703,14 +1660,12 @@ body {
   opacity: 0.8;
 }
 
-/* Results display improvements */
 #resultsContainer {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
 }
 
-/* Detection result card */
 .detection-result {
   margin-top: 30px;
   background: var(--glass-bg);
@@ -1730,14 +1685,12 @@ body {
   border-bottom: 1px solid var(--glass-border);
 }
 
-/* For the detection button */
 #detectButton {
   max-width: 400px;
   margin: 20px auto;
   display: block;
 }
 
-/* Ensure uploaded images in the chat are properly sized */
 .fullscreen-chat-container .message img.image-preview {
   max-width: 90%;
   max-height: 400px;
@@ -1751,7 +1704,6 @@ body {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Monitoring Interface Styles */
 .monitoring-card {
   position: relative;
   margin-bottom: 30px;
@@ -1767,7 +1719,7 @@ body {
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 75%; /* 4:3 Aspect Ratio */
+  padding-bottom: 75%; 
   background: var(--upload-area-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
@@ -1970,7 +1922,6 @@ body {
   }
 }
 
-/* Responsive adjustments for monitoring interface */
 @media (max-width: 768px) {
   .monitoring-controls {
     flex-wrap: wrap;
@@ -1989,7 +1940,6 @@ body {
   }
 }
 
-/* Detection Manager Styles */
 .alert-container {
   position: fixed;
   top: 20px;
@@ -2079,7 +2029,6 @@ body {
   background: var(--hover-bg);
 }
 
-/* Settings Gear Icon */
 .settings-gear {
   position: absolute;
   top: 20px;
@@ -2123,7 +2072,6 @@ body {
   color: #333;
 }
 
-/* Settings Panel Styles */
 .settings-panel {
   position: fixed;
   top: 50%;
@@ -2141,7 +2089,7 @@ body {
   max-height: 85vh;
   overflow-y: auto;
   z-index: 1000;
-  display: none; /* Hidden by default */
+  display: none; 
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -2225,7 +2173,6 @@ body {
   margin: 0 0 15px 0;
 }
 
-/* Profile Cards */
 .profile-selector {
   margin-top: 15px;
 }
@@ -2299,7 +2246,6 @@ body {
   opacity: 0.8;
 }
 
-/* Setting Items */
 .setting-item {
   margin-bottom: 20px;
 }
@@ -2326,7 +2272,6 @@ body {
   color: white;
 }
 
-/* Slider Styles */
 .slider {
   -webkit-appearance: none;
   width: 100%;
@@ -2372,7 +2317,6 @@ body {
   color: white;
 }
 
-/* Toggle Switch Styles */
 .toggle-container {
   display: flex;
   justify-content: space-between;
@@ -2491,7 +2435,6 @@ input:checked + .switch-slider:before {
   border-color: var(--border-highlight);
 }
 
-/* Animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -2503,7 +2446,6 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Light Theme Adjustments */
 [data-theme="light"] .profile-card {
   background: rgba(220, 220, 230, 0.5);
 }
@@ -2556,7 +2498,6 @@ input:checked + .switch-slider:before {
   color: #333;
 }
 
-/* Verification Results Styles */
 .verification-result {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -2678,7 +2619,6 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Settings Gear Icon */
 .settings-toggle {
   position: absolute !important;
   top: 15px !important;
@@ -2715,7 +2655,6 @@ input:checked + .switch-slider:before {
   color: white !important;
 }
 
-/* Settings Section Header */
 .section-header h4 {
   margin: 0;
   font-size: 1.1rem;
@@ -2727,7 +2666,6 @@ input:checked + .switch-slider:before {
   color: #333;
 }
 
-/* Settings Description */
 .setting-description {
   font-size: 0.9rem;
   opacity: 0.9;
@@ -2739,7 +2677,6 @@ input:checked + .switch-slider:before {
   color: rgba(0, 0, 0, 0.7);
 }
 
-/* Responsive Adjustments */
 @media (max-width: 768px) {
   .profile-cards {
     flex-direction: column;
@@ -2755,7 +2692,6 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Collapsible Section Styles */
 .settings-section.collapsible .section-header {
   cursor: pointer;
   position: relative;
@@ -2794,7 +2730,6 @@ input:checked + .switch-slider:before {
   opacity: 1;
 }
 
-/* Active state styling for collapsible header */
 .settings-section.collapsible .section-header.active {
   background-color: rgba(255, 255, 255, 0.15);
 }
@@ -2803,19 +2738,17 @@ input:checked + .switch-slider:before {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Enhanced Monitoring Interface Styles */
 .monitoring-preview {
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 75%; /* 4:3 Aspect Ratio */
+  padding-bottom: 75%; 
   background: var(--upload-area-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   overflow: hidden;
 }
 
-/* Capture Flash Overlay */
 .capture-flash-overlay {
   position: absolute;
   top: 0;
@@ -2838,7 +2771,6 @@ input:checked + .switch-slider:before {
   100% { background: rgba(255, 255, 255, 0); }
 }
 
-/* Monitoring Status Pill */
 .monitoring-status-pill {
   display: flex;
   align-items: center;
@@ -2983,12 +2915,10 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Countdown Display - removing the old standalone version */
 .countdown-display {
   display: none;
 }
 
-/* Activity Log */
 .activity-log {
   position: absolute;
   top: 0;
@@ -3096,7 +3026,6 @@ input:checked + .switch-slider:before {
   border-left: 3px solid #2196F3;
 }
 
-/* Show and hide activity log toggle */
 .activity-log-toggle {
   position: absolute;
   top: 50%;
@@ -3143,7 +3072,6 @@ input:checked + .switch-slider:before {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive adaptations for monitoring interface */
 @media (max-width: 768px) {
   .activity-log {
     position: fixed;
@@ -3170,7 +3098,6 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Detection Notification */
 .detection-notification {
   position: fixed;
   top: 20px;
@@ -3262,7 +3189,6 @@ input:checked + .switch-slider:before {
   }
 }
 
-/* Detection Result Overlay */
 .detection-result-overlay {
   position: absolute;
   top: 0;
@@ -3280,7 +3206,7 @@ input:checked + .switch-slider:before {
 .detection-result-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Change from contain to cover to match video feed */
+  object-fit: cover; 
 }
 
 .bounding-box {
@@ -3328,7 +3254,6 @@ input:checked + .switch-slider:before {
   opacity: 1;
 }
 
-/* Removing unnecessary Detection Notification popup styles */
 .detection-notification {
   display: none;
 }

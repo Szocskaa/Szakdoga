@@ -9,14 +9,13 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const uploadConfig_1 = require("../uploadConfig");
-// Load environment variables
+// Load env
 dotenv_1.default.config();
 const router = express_1.default.Router();
-// Environment variables
+// Env
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY;
 const PROJECT_ID = process.env.PROJECT_ID;
 const MODEL_VERSION = process.env.MODEL_VERSION;
-// Check if environment variables are set
 if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
     console.warn('Warning: One or more Roboflow environment variables are not set (ROBOFLOW_API_KEY, PROJECT_ID, MODEL_VERSION)');
     console.log('Current environment values:');
@@ -35,14 +34,11 @@ router.post('/detect', uploadConfig_1.upload.single('image'), (req, res, next) =
             if (!req.file) {
                 return res.status(400).json({ error: 'No image file provided' });
             }
-            // Check if required environment variables are set
             if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
                 return res.status(500).json({ error: 'Server configuration error: API credentials not properly configured' });
             }
             const filePath = req.file.path;
-            // Read the image file as base64
             const imageBase64 = fs_1.default.readFileSync(filePath, { encoding: 'base64' });
-            // Make request to Roboflow API
             const response = await (0, axios_1.default)({
                 method: 'POST',
                 url: `https://detect.roboflow.com/${PROJECT_ID}/${MODEL_VERSION}`,
@@ -54,9 +50,7 @@ router.post('/detect', uploadConfig_1.upload.single('image'), (req, res, next) =
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             });
-            // Clean up the temporary file
             fs_1.default.unlinkSync(filePath);
-            // Return the detection results
             res.status(200).json(response.data);
         }
         catch (error) {

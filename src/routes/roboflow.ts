@@ -5,17 +5,16 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { upload } from '../uploadConfig';
 
-// Load environment variables
+// Load env
 dotenv.config();
 
 const router = express.Router();
 
-// Environment variables
+// Env
 const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY;
 const PROJECT_ID = process.env.PROJECT_ID;
 const MODEL_VERSION = process.env.MODEL_VERSION;
 
-// Check if environment variables are set
 if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
   console.warn('Warning: One or more Roboflow environment variables are not set (ROBOFLOW_API_KEY, PROJECT_ID, MODEL_VERSION)');
   console.log('Current environment values:');
@@ -36,17 +35,14 @@ router.post('/detect', upload.single('image'), (req: Request, res: Response, nex
         return res.status(400).json({ error: 'No image file provided' });
       }
 
-      // Check if required environment variables are set
       if (!ROBOFLOW_API_KEY || !PROJECT_ID || !MODEL_VERSION) {
         return res.status(500).json({ error: 'Server configuration error: API credentials not properly configured' });
       }
 
       const filePath = req.file.path;
       
-      // Read the image file as base64
       const imageBase64 = fs.readFileSync(filePath, { encoding: 'base64' });
       
-      // Make request to Roboflow API
       const response = await axios({
         method: 'POST',
         url: `https://detect.roboflow.com/${PROJECT_ID}/${MODEL_VERSION}`,
@@ -59,10 +55,8 @@ router.post('/detect', upload.single('image'), (req: Request, res: Response, nex
         }
       });
       
-      // Clean up the temporary file
       fs.unlinkSync(filePath);
       
-      // Return the detection results
       res.status(200).json(response.data);
     } catch (error) {
       console.error('Error detecting 3D printing failures:', error);
