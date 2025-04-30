@@ -73,7 +73,6 @@ class Stage {
 
   onResize() {
     this._setCamera();
-    // Update renderParam dimensions to match current window size
     this.renderParam.width = window.innerWidth;
     this.renderParam.height = window.innerHeight;
   }
@@ -89,11 +88,9 @@ class Mesh {
     this.canvasWidth = this.canvas.width;
     this.canvasHeight = this.canvas.height;
     
-    // Mouse position tracking
     this.mouseX = 0;
     this.mouseY = 0;
     
-    // Theme state (default is dark)
     this.isLightTheme = false;
 
     this.uniforms = {
@@ -114,46 +111,36 @@ class Mesh {
     this.yScale = 0.5;
     this.distortion = 0.050;
     
-    // Set up mouse move listener
     this._setupMouseTracking();
   }
 
   init() {
     this._setMesh();
-    // Update dimensions after initialization
     this._updateDimensions();
   }
   
   _setupMouseTracking() {
     window.addEventListener('mousemove', (e) => {
-      // Get canvas bounding rectangle
       const rect = this.canvas.getBoundingClientRect();
       
-      // Calculate mouse position relative to canvas
       this.mouseX = e.clientX - rect.left;
       this.mouseY = e.clientY - rect.top;
       
-      // Update uniform with scaled values to match WebGL coordinates
       if (this.uniforms.mouse) {
         this.uniforms.mouse.value[0] = this.mouseX * (this.canvas.width / rect.width);
         this.uniforms.mouse.value[1] = (rect.height - this.mouseY) * (this.canvas.height / rect.height); // Invert Y for WebGL
       }
     });
     
-    // Handle touch for mobile
     window.addEventListener('touchmove', (e) => {
       if (e.touches.length > 0) {
-        // Prevent scrolling
-        e.preventDefault();
+        // e.preventDefault(); // Removed to allow scrolling on touch devices
         
-        // Get canvas bounding rectangle
         const rect = this.canvas.getBoundingClientRect();
         
-        // Calculate touch position relative to canvas
         this.mouseX = e.touches[0].clientX - rect.left;
         this.mouseY = e.touches[0].clientY - rect.top;
         
-        // Update uniform with scaled values to match WebGL coordinates
         if (this.uniforms.mouse) {
           this.uniforms.mouse.value[0] = this.mouseX * (this.canvas.width / rect.width);
           this.uniforms.mouse.value[1] = (rect.height - this.mouseY) * (this.canvas.height / rect.height); // Invert Y for WebGL
@@ -197,7 +184,6 @@ class Mesh {
   }
   
   onResize() {
-    // Update dimensions when window is resized
     this._updateDimensions();
   }
   
@@ -215,10 +201,8 @@ class Mesh {
   }
   
   _render() {
-    // Slower speed for the waves (reduced from 0.01)
     this.uniforms.time.value += 0.004;
     
-    // Update dimensions if window is resized
     this._updateDimensions();
   }
 
@@ -227,15 +211,12 @@ class Mesh {
   }
 }
 
-// Initialize the effect when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize THREE.js background
   const stage = new Stage();
   stage.init();
   const mesh = new Mesh(stage);
   mesh.init();
   
-  // Apply saved theme to shader if it's light
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'light') {
     mesh.updateTheme(true);
@@ -256,6 +237,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   _raf();
   
-  // Make mesh accessible to other scripts
   window.themeMesh = mesh;
 }); 

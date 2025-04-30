@@ -9,6 +9,11 @@ A web application for monitoring and analyzing 3D prints, with AI-powered failur
 - **Chat Interface**: Interact with AI assistant to ask questions about detected print failures
 - **Image Upload**: Upload images of 3D prints for analysis directly through the chat interface
 
+## Prerequisites
+
+- Node.js (v18 or later recommended)
+- npm (comes with Node.js)
+
 ## Setup
 
 1. Clone the repository
@@ -25,7 +30,7 @@ GEMINI_API_KEY=your_gemini_api_key
 ```
 4. Build the application:
 ```bash
-npm run build
+npx tsc
 ```
 5. Start the server:
 ```bash
